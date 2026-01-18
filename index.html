@@ -4,16 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>InstaCode Generator</title>
-    <!-- Font Awesome for Icons -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts: Inter and Fira Code -->
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <!-- html2canvas Library -->
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- html2canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- PrismJS (Professional Syntax Highlighting) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
 
     <style>
         :root {
-            /* Default Theme (Dark) */
+            /* Theme Variables */
             --app-bg: #0d1117;
             --sidebar-bg: #161b22;
             --border-color: #30363d;
@@ -27,8 +32,8 @@
             --canvas-text: #ffffff;
             --code-bg: #1e1e1e;
             --preview-width: 400px; 
-            --preview-height: 500px; /* Default 4:5 */
-            --font-size-code: 11px;
+            --preview-height: 500px;
+            --font-size-code: 12px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,7 +54,7 @@
             height: 100%;
         }
 
-        /* --- Sidebar Controls --- */
+        /* --- Sidebar --- */
         .sidebar {
             width: 380px;
             min-width: 320px;
@@ -61,7 +66,6 @@
             flex-direction: column;
             gap: 18px;
             z-index: 20;
-            transition: transform 0.3s ease;
         }
 
         .sidebar h2 { font-size: 1.2rem; margin-bottom: 5px; color: #fff; display: flex; align-items: center; gap: 10px; }
@@ -103,21 +107,8 @@
 
         textarea { font-family: 'Fira Code', monospace; font-size: 0.8rem; }
 
-        .row-group {
-            display: flex;
-            gap: 10px;
-        }
-        
+        .row-group { display: flex; gap: 10px; }
         .col-half { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-
-        input[type="color"] {
-            width: 100%;
-            height: 38px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            padding: 0;
-        }
 
         /* Buttons */
         .action-buttons {
@@ -165,23 +156,18 @@
             position: relative;
         }
 
-        /* Focus Mode overlay for recording */
         .preview-area.focus-mode {
             background: #000;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: 100;
             padding: 0;
         }
 
-        /* Recording Indicator Overlay */
+        /* Indicator */
         .recording-overlay {
             position: absolute;
-            top: 30px;
-            right: 30px;
+            top: 30px; right: 30px;
             background: rgba(220, 38, 38, 0.9);
             color: white;
             padding: 8px 16px;
@@ -189,14 +175,13 @@
             font-weight: bold;
             display: none;
             animation: pulse 1.5s infinite;
-            pointer-events: none;
             z-index: 200;
             box-shadow: 0 0 15px rgba(220, 38, 38, 0.5);
             font-size: 0.9rem;
         }
         @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0.8; } }
 
-        /* The Instagram Canvas */
+        /* --- THE CANVAS (Instagram Card) --- */
         #instagram-canvas {
             width: var(--preview-width);
             height: var(--preview-height);
@@ -207,12 +192,12 @@
             flex-direction: column;
             overflow: hidden;
             flex-shrink: 0;
-            border-radius: 4px; /* Slightly softer corners */
-            transition: width 0.3s, height 0.3s, background-color 0.3s, transform 0.3s;
+            border-radius: 4px;
+            transition: transform 0.3s;
             transform-origin: center center;
         }
 
-        /* --- New Canvas Header (Profile Style) --- */
+        /* Profile Header */
         .canvas-header {
             padding: 14px 16px;
             display: flex;
@@ -222,71 +207,36 @@
             flex-shrink: 0;
         }
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .header-left { display: flex; align-items: center; gap: 10px; }
 
         .avatar-container {
-            width: 32px;
-            height: 32px;
+            width: 32px; height: 32px;
             border-radius: 50%;
             background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-            padding: 2px; /* Ring effect */
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            padding: 2px;
+            display: flex; justify-content: center; align-items: center;
         }
 
         .avatar-img {
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             border-radius: 50%;
             object-fit: cover;
             background: #000;
-            border: 2px solid var(--canvas-bg); /* Match bg to create spacing */
+            border: 2px solid var(--canvas-bg);
         }
 
-        .header-info {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
+        .header-info { display: flex; flex-direction: column; justify-content: center; }
 
         .canvas-username {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--canvas-text);
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            font-size: 0.9rem; font-weight: 700; color: var(--canvas-text);
+            line-height: 1; display: flex; align-items: center; gap: 6px;
         }
 
-        .follow-text {
-            color: #3897f0; /* Instagram Blue */
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
+        .follow-text { color: #3897f0; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
         .dot-separator { font-size: 0.6rem; color: #888; }
+        .header-options { color: var(--canvas-text); font-size: 1rem; cursor: pointer; }
 
-        .header-subtitle {
-            font-size: 0.75rem;
-            color: var(--canvas-text);
-            opacity: 0.8;
-            margin-top: 2px;
-        }
-
-        .header-options {
-            color: var(--canvas-text);
-            font-size: 1rem;
-            cursor: pointer;
-        }
-
-        /* Split Screen Layout */
+        /* Content Split */
         .split-container {
             flex: 1;
             display: flex;
@@ -298,45 +248,34 @@
             position: relative;
         }
 
-        /* Top Section: Result */
+        /* Result Section (Top) */
         .result-section {
-            flex: 1; /* Takes remaining space */
+            flex: 1;
             background: #000;
             border-radius: 8px;
             overflow: hidden;
             position: relative;
             border: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            min-height: 0; /* Important for flex overflow */
+            min-height: 0;
         }
 
-        .result-media {
-            width: 100%;
-            height: 100%;
-            object-fit: contain; /* Ensure whole app/result is seen */
-        }
-
+        .result-media { width: 100%; height: 100%; object-fit: contain; }
+        
         .placeholder-text {
-            color: #555;
-            font-size: 0.8rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            text-align: center;
+            color: #555; font-size: 0.8rem;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 10px; text-align: center;
         }
 
-        /* Bottom Section: Code Window */
+        /* Code Section (Bottom) */
         .code-section {
-            flex: 1; /* Takes remaining space */
+            flex: 1;
             background: var(--code-bg);
             border-radius: 8px;
             border: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             min-height: 0;
@@ -345,9 +284,7 @@
         .window-bar {
             background: rgba(255,255,255,0.05);
             padding: 8px 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            display: flex; align-items: center; gap: 6px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
             flex-shrink: 0;
         }
@@ -359,123 +296,79 @@
 
         .code-content {
             flex: 1;
-            padding: 15px;
+            padding: 10px;
             overflow: hidden;
             position: relative;
+            background: var(--code-bg);
         }
 
-        /* Code Styling */
-        .code-text {
-            font-family: 'Fira Code', monospace;
-            font-size: var(--font-size-code);
-            color: var(--text-main);
-            white-space: pre-wrap;
-            line-height: 1.5;
-            background: transparent;
-            border: none;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
+        /* PrismJS Overrides for cleaner look */
+        pre[class*="language-"] {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            text-shadow: none !important;
+            font-family: 'Fira Code', monospace !important;
+            font-size: var(--font-size-code) !important;
+        }
+        code[class*="language-"] {
+            font-family: 'Fira Code', monospace !important;
+            white-space: pre-wrap !important;
         }
         
         .code-image-preview {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: none;
+            width: 100%; height: 100%; object-fit: cover; display: none;
         }
 
-        /* --- New Canvas Footer (Action Bar) --- */
+        /* Footer / Actions */
         .canvas-footer {
             padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: var(--canvas-text);
-            font-size: 1.4rem;
-            z-index: 5;
+            display: flex; justify-content: space-between; align-items: center;
+            color: var(--canvas-text); font-size: 1.4rem; z-index: 5;
         }
         
-        .action-icons {
-            display: flex;
-            gap: 16px;
-        }
-        
-        .action-icon {
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
+        .action-icons { display: flex; gap: 16px; }
+        .action-icon { cursor: pointer; transition: transform 0.2s; }
         .action-icon:hover { transform: scale(1.1); color: var(--text-muted); }
-        .fa-heart:hover { color: #ed4956; } /* Like Red */
+        .fa-heart:hover { color: #ed4956; }
 
-        /* Sticker Overlay */
+        /* Sticker */
         .cta-sticker {
-            position: absolute;
-            top: 50%;
-            left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 0.85rem;
+            color: white; padding: 8px 16px;
+            border-radius: 20px; font-weight: 700; font-size: 0.85rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            cursor: grab;
-            z-index: 20;
-            user-select: none;
-            white-space: nowrap;
-            transition: box-shadow 0.2s;
+            cursor: grab; z-index: 20; user-select: none; white-space: nowrap;
             border: 2px solid rgba(255,255,255,0.2);
         }
-
         .cta-sticker:active { cursor: grabbing; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
 
-        /* Syntax Highlight Colors */
-        .hl-keyword { color: #ff7b72; font-weight: bold; }
-        .hl-function { color: #d2a8ff; }
-        .hl-string { color: #a5d6ff; }
-        .hl-comment { color: #8b949e; font-style: italic; }
-        .hl-number { color: #79c0ff; }
-
-        /* RESPONSIVE DESIGN */
+        /* Mobile */
         @media (max-width: 900px) {
             .app-container { flex-direction: column; overflow-y: auto; height: auto; }
             .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
             .preview-area { min-height: 80vh; padding: 40px 20px; overflow: hidden; }
         }
 
-        /* Custom Alert Modal */
+        /* Custom Alert */
         #custom-alert {
-            position: fixed;
-            top: 20px;
-            left: 50%;
+            position: fixed; top: 20px; left: 50%;
             transform: translateX(-50%);
-            background: #da3633;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
+            background: #da3633; color: white;
+            padding: 15px 25px; border-radius: 8px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            z-index: 1000;
-            display: none;
-            font-weight: 600;
-            text-align: center;
-            max-width: 90%;
+            z-index: 2000; display: none;
+            font-weight: 600; text-align: center; max-width: 90%;
         }
 
-        /* Video Instructions Modal */
+        /* Modal */
         #video-instructions {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 2000;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            color: white;
-            padding: 20px;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 2000; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; color: white; padding: 20px;
         }
         #video-instructions h3 { margin-bottom: 15px; font-size: 1.5rem; }
         #video-instructions p { margin-bottom: 20px; color: #ccc; max-width: 500px; line-height: 1.6; }
@@ -488,33 +381,29 @@
 </head>
 <body>
 
-    <!-- Custom Alert Box -->
     <div id="custom-alert"></div>
 
-    <!-- Video Guide Modal -->
     <div id="video-instructions">
-        <h3><i class="fa-solid fa-video"></i> One Last Step</h3>
-        <p>Browsers require permission to generate video files.</p>
+        <h3><i class="fa-solid fa-video"></i> Video Export Guide</h3>
+        <p>You must grant permission to capture the tab contents.</p>
         <ul class="steps">
-            <li><i class="fa-solid fa-1"></i> A system popup will appear. Click the <strong>"Chrome Tab"</strong> tab at the top.</li>
-            <li><i class="fa-solid fa-2"></i> <strong>IMPORTANT:</strong> Click on <strong>"InstaCode Generator"</strong> in the list.</li>
-            <li><i class="fa-solid fa-3"></i> The blue <strong>"Share"</strong> button will light up. Click it to start.</li>
+            <li><i class="fa-solid fa-1"></i> In the popup, select <strong>"Chrome Tab"</strong> (or "This Tab").</li>
+            <li><i class="fa-solid fa-2"></i> <strong>CLICK</strong> on <strong>"InstaCode Generator"</strong> in the list.</li>
+            <li><i class="fa-solid fa-3"></i> Click the blue <strong>"Share"</strong> button.</li>
         </ul>
         <div style="margin-bottom: 20px; font-size: 0.85rem; color: #ff7b72; background: rgba(255,0,0,0.1); padding: 10px; border-radius: 4px;">
-            <i class="fa-solid fa-triangle-exclamation"></i> If you don't click the list item, the Share button stays grey!
+            <i class="fa-solid fa-triangle-exclamation"></i> IF YOU ARE IN A PREVIEW WINDOW, THIS WILL FAIL.<br>PLEASE DOWNLOAD THE FILE FIRST.
         </div>
-        <button class="btn-confirm" onclick="startAuthorizedRecording()">Got it, Open Popup</button>
+        <button class="btn-confirm" onclick="startAuthorizedRecording()">I'm Running Locally, Start</button>
         <button class="btn" style="margin-top:10px; background:transparent; border:none; color:#888; text-decoration:underline; cursor:pointer;" onclick="closeInstructions()">Cancel</button>
     </div>
 
     <div class="app-container">
-        <!-- SIDEBAR CONTROLS -->
+        <!-- SIDEBAR -->
         <aside class="sidebar">
             <h2><i class="fa-solid fa-layer-group"></i> InstaCode Pro</h2>
 
-            <!-- SECTION: APPEARANCE -->
             <div class="section-title">Appearance</div>
-            
             <div class="row-group">
                 <div class="col-half">
                     <label>Theme</label>
@@ -536,93 +425,74 @@
             </div>
 
             <div class="control-group">
-                <label>Profile Name (Header)</label>
+                <label>Profile Name</label>
                 <input type="text" id="input-title" value="CodeDaily" oninput="updateText()">
             </div>
 
-            <!-- SECTION: CONTENT -->
-            <div class="section-title">Content Assets</div>
-
+            <div class="section-title">Content</div>
             <div class="control-group">
-                <label>Top: Result (Video/Image)</label>
+                <label>Result Media (Video/Image)</label>
                 <input type="file" id="file-result" accept="image/*,video/*" onchange="handleFile(this, 'result-preview')">
             </div>
 
             <div class="control-group">
-                <label>Bottom: Code Snippet</label>
+                <label>Code Snippet</label>
                 <div class="row-group" style="margin-bottom: 5px;">
                     <select id="code-mode" onchange="toggleCodeMode()" style="flex:1">
                         <option value="text">Type Code</option>
                         <option value="image">Upload Screenshot</option>
                     </select>
-                    <input type="range" id="font-size-slider" min="8" max="20" value="11" style="width: 80px;" oninput="updateFontSize()">
+                    <input type="range" id="font-size-slider" min="10" max="24" value="12" style="width: 80px;" oninput="updateFontSize()">
                 </div>
-                
-                <!-- Text Area -->
                 <div id="code-text-group">
                     <textarea id="input-code" rows="6" oninput="updateCode()">
-.container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-// Flexbox Fallback
-.box {
-  display: flex;
-  justify-content: center;
+function sayHello() {
+  const msg = "InstaCode is awesome!";
+  console.log(msg);
+  return true;
 }</textarea>
                 </div>
-                <!-- Image Upload -->
                 <div id="code-upload-group" style="display:none;">
                     <input type="file" id="file-code" accept="image/*" onchange="handleFile(this, 'code-img-preview')">
                 </div>
             </div>
 
-            <!-- SECTION: OVERLAYS -->
             <div class="section-title">Overlays</div>
-
             <div class="control-group">
-                <label>CTA Sticker Text</label>
+                <label>Sticker Text</label>
                 <input type="text" id="input-cta" value="Save for later 🔖" oninput="updateText()">
             </div>
-            
             <div class="control-group">
                 <label>Profile Avatar</label>
                 <input type="file" id="file-logo" accept="image/*" onchange="handleFile(this, 'avatar-img')">
             </div>
 
-            <!-- ACTION BUTTONS -->
             <div class="action-buttons">
                 <button class="btn btn-secondary" onclick="downloadImage()">
                     <i class="fa-solid fa-image"></i> Download Image (PNG)
                 </button>
-                
                 <div class="control-group">
                     <label>Video Duration</label>
                     <select id="video-duration">
                         <option value="manual">Manual Stop</option>
                         <option value="5000">5 Seconds (Auto)</option>
                         <option value="10000">10 Seconds (Auto)</option>
-                        <option value="15000">15 Seconds (Auto)</option>
                     </select>
                 </div>
-                
                 <button class="btn btn-primary" id="btn-record" onclick="showExportInstructions()">
                     <i class="fa-solid fa-video"></i> Export Video (MP4)
                 </button>
             </div>
         </aside>
 
-        <!-- PREVIEW AREA -->
+        <!-- PREVIEW -->
         <main class="preview-area" id="main-preview-area">
             <div class="recording-overlay" id="rec-indicator">
-                <i class="fa-solid fa-circle"></i> GENERATING VIDEO...
+                <i class="fa-solid fa-circle"></i> RECORDING...
             </div>
             
             <div id="instagram-canvas">
-                
-                <!-- Updated Header: Profile Style -->
+                <!-- Header -->
                 <div class="canvas-header">
                     <div class="header-left">
                         <div class="avatar-container">
@@ -634,64 +504,50 @@
                                 <span class="dot-separator">•</span>
                                 <span class="follow-text">Follow</span>
                             </div>
-                            <!-- Optional subtitle or audio tag could go here -->
                         </div>
                     </div>
-                    <div class="header-options">
-                        <i class="fa-solid fa-ellipsis"></i>
-                    </div>
+                    <div class="header-options"><i class="fa-solid fa-ellipsis"></i></div>
                 </div>
 
-                <!-- Split Content -->
+                <!-- Content -->
                 <div class="split-container">
-                    
-                    <!-- Result (Top) -->
                     <div class="result-section">
                         <img src="" class="result-media" id="result-preview" style="display:none;">
                         <video loop autoplay muted playsinline class="result-media" id="result-video-preview" style="display:none;"></video>
                         <div id="result-placeholder" class="placeholder-text">
-                            <i class="fa-solid fa-play-circle fa-2x" style="margin-bottom:8px; opacity:0.5;"></i>
-                            <span>Upload Video or Image<br><small>(Mp4/WebM supported)</small></span>
+                            <i class="fa-solid fa-play-circle fa-2x" style="opacity:0.5;"></i>
+                            <span>Upload Result</span>
                         </div>
                     </div>
 
-                    <!-- Code (Bottom) -->
                     <div class="code-section">
                         <div class="window-bar">
-                            <div class="dot red"></div>
-                            <div class="dot yellow"></div>
-                            <div class="dot green"></div>
+                            <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
                         </div>
                         <div class="code-content">
-                            <!-- Text Mode -->
-                            <div id="code-text-display" class="code-text"></div>
-                            <!-- Image Mode -->
+                            <!-- Prism Code Block -->
+                            <pre class="language-javascript" id="code-text-display"><code id="prism-code-target"></code></pre>
                             <img src="" class="code-image-preview" id="code-img-preview">
                         </div>
                     </div>
 
-                    <!-- Overlays: Just Sticker now, logo is in header -->
                     <div class="cta-sticker" id="cta-sticker">Save for later 🔖</div>
                 </div>
 
-                <!-- NEW: Footer / Action Bar -->
+                <!-- Footer -->
                 <div class="canvas-footer">
                     <div class="action-icons">
                         <i class="fa-regular fa-heart action-icon"></i>
                         <i class="fa-regular fa-comment action-icon"></i>
                         <i class="fa-regular fa-paper-plane action-icon"></i>
                     </div>
-                    <div class="save-icon">
-                        <i class="fa-regular fa-bookmark action-icon"></i>
-                    </div>
+                    <div class="save-icon"><i class="fa-regular fa-bookmark action-icon"></i></div>
                 </div>
-
             </div>
         </main>
     </div>
 
     <script>
-        // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             updateText();
             updateCode();
@@ -700,47 +556,30 @@
             window.addEventListener('resize', fitCanvas);
         });
 
-        // --- Custom Alert ---
         function showAlert(msg) {
             const alertBox = document.getElementById('custom-alert');
             alertBox.innerText = msg;
             alertBox.style.display = 'block';
-            setTimeout(() => {
-                alertBox.style.display = 'none';
-            }, 8000); // Increased timeout for reading long messages
+            setTimeout(() => { alertBox.style.display = 'none'; }, 6000);
         }
 
-        // --- Smart Scaling ---
         function fitCanvas() {
             const container = document.getElementById('main-preview-area');
             const canvas = document.getElementById('instagram-canvas');
+            if (window.innerWidth <= 900) return;
             
-            if (window.innerWidth <= 900) return; // Let CSS handle mobile layout
-
-            // Calculate scale
-            const availableWidth = container.clientWidth - 80; // padding
+            const availableWidth = container.clientWidth - 80;
             const availableHeight = container.clientHeight - 80;
             const currentRatio = document.getElementById('ratio-select').value;
-            
-            let baseW = 400; 
-            let baseH = 500;
+            let baseW = 400, baseH = 500;
             
             if (currentRatio === 'square') baseH = 400;
             if (currentRatio === 'story') baseH = 711;
 
-            const scale = Math.min(
-                availableWidth / baseW,
-                availableHeight / baseH
-            );
-
-            if (scale < 1) {
-                canvas.style.transform = `scale(${scale})`;
-            } else {
-                canvas.style.transform = 'scale(1)';
-            }
+            const scale = Math.min(availableWidth / baseW, availableHeight / baseH);
+            canvas.style.transform = scale < 1 ? `scale(${scale})` : 'scale(1)';
         }
 
-        // --- Core Updates ---
         function updateText() {
             document.getElementById('preview-title').innerText = document.getElementById('input-title').value;
             document.getElementById('cta-sticker').innerText = document.getElementById('input-cta').value;
@@ -774,88 +613,51 @@
 
         function updateCode() {
             const rawCode = document.getElementById('input-code').value;
-            const display = document.getElementById('code-text-display');
+            const target = document.getElementById('prism-code-target');
             
-            // Simple Syntax Highlighting
-            let formatted = rawCode
-                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-                .replace(/\b(const|let|var|function|return|if|else|for|while|import|from|class|export|default|grid|flex)\b/g, '<span class="hl-keyword">$1</span>')
-                .replace(/\b(console|log|document|getElementById|querySelector)\b/g, '<span class="hl-function">$1</span>')
-                .replace(/(['"`].*?['"`])/g, '<span class="hl-string">$1</span>')
-                .replace(/\b(\d+px|\d+rem|\d+%|\d+)\b/g, '<span class="hl-number">$1</span>')
-                .replace(/(\/\/.*)/g, '<span class="hl-comment">$1</span>');
-
-            display.innerHTML = formatted;
+            // Escape HTML to prevent injection, then highlight
+            target.textContent = rawCode;
+            Prism.highlightElement(target);
         }
 
-        // --- Theme Engine ---
         function applyTheme() {
             const theme = document.getElementById('theme-select').value;
             const root = document.documentElement;
-
-            if (theme === 'dracula') {
-                root.style.setProperty('--canvas-bg', '#282a36');
-                root.style.setProperty('--canvas-text', '#f8f8f2');
-                root.style.setProperty('--code-bg', '#282a36');
-            } else if (theme === 'github-light') {
-                root.style.setProperty('--canvas-bg', '#ffffff');
-                root.style.setProperty('--canvas-text', '#24292e');
-                root.style.setProperty('--code-bg', '#f6f8fa');
-            } else if (theme === 'monokai') {
-                root.style.setProperty('--canvas-bg', '#272822');
-                root.style.setProperty('--canvas-text', '#f8f8f2');
-                root.style.setProperty('--code-bg', '#272822');
-            } else {
-                // Default Dark
-                root.style.setProperty('--canvas-bg', '#1e1e1e');
-                root.style.setProperty('--canvas-text', '#ffffff');
-                root.style.setProperty('--code-bg', '#1e1e1e');
-            }
+            // Simplified theme application for brevity
+            const themes = {
+                'dark': { bg: '#1e1e1e', txt: '#fff' },
+                'dracula': { bg: '#282a36', txt: '#f8f8f2' },
+                'github-light': { bg: '#ffffff', txt: '#24292e' },
+                'monokai': { bg: '#272822', txt: '#f8f8f2' }
+            };
+            const t = themes[theme] || themes['dark'];
+            root.style.setProperty('--canvas-bg', t.bg);
+            root.style.setProperty('--canvas-text', t.txt);
+            root.style.setProperty('--code-bg', t.bg);
+            // Re-highlight for prism theme adjustment if needed (Prism uses own CSS, this is canvas BG)
         }
 
         function changeAspectRatio() {
             const ratio = document.getElementById('ratio-select').value;
             const root = document.documentElement;
-            
-            if (ratio === 'square') {
-                root.style.setProperty('--preview-height', '400px');
-            } else if (ratio === 'story') {
-                root.style.setProperty('--preview-height', '711px'); 
-            } else {
-                root.style.setProperty('--preview-height', '500px');
-            }
+            if (ratio === 'square') root.style.setProperty('--preview-height', '400px');
+            else if (ratio === 'story') root.style.setProperty('--preview-height', '711px');
+            else root.style.setProperty('--preview-height', '500px');
             fitCanvas();
         }
 
-        // --- File Handling ---
         function handleFile(input, previewId) {
             const file = input.files[0];
             if (!file) return;
-
             const reader = new FileReader();
-            
             reader.onload = function(e) {
                 if (previewId === 'result-preview') {
                     const isVideo = file.type.startsWith('video');
-                    const imgPreview = document.getElementById('result-preview');
-                    const vidPreview = document.getElementById('result-video-preview');
-                    const placeholder = document.getElementById('result-placeholder');
-                    
-                    if (placeholder) placeholder.style.display = 'none';
-
-                    if (isVideo) {
-                        imgPreview.style.display = 'none';
-                        vidPreview.src = e.target.result;
-                        vidPreview.style.display = 'block';
-                        // Auto-play ensuring mute
-                        vidPreview.muted = true;
-                        vidPreview.play();
-                    } else {
-                        vidPreview.style.display = 'none';
-                        vidPreview.pause();
-                        imgPreview.src = e.target.result;
-                        imgPreview.style.display = 'block';
-                    }
+                    const img = document.getElementById('result-preview');
+                    const vid = document.getElementById('result-video-preview');
+                    document.getElementById('result-placeholder').style.display = 'none';
+                    if (isVideo) { img.style.display = 'none'; vid.src = e.target.result; vid.style.display = 'block'; vid.muted=true; vid.play(); }
+                    else { vid.style.display = 'none'; vid.pause(); img.src = e.target.result; img.style.display = 'block'; }
                 } else {
                     document.getElementById(previewId).src = e.target.result;
                     document.getElementById(previewId).style.display = 'block';
@@ -864,107 +666,42 @@
             reader.readAsDataURL(file);
         }
 
-        // --- Drag Logic ---
         function makeDraggable(element) {
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
             element.onmousedown = dragMouseDown;
             element.ontouchstart = dragTouchStart;
-
-            function dragMouseDown(e) {
-                e.preventDefault();
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
-                element.style.cursor = 'grabbing';
-            }
-
-            function elementDrag(e) {
-                e.preventDefault();
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                element.style.top = (element.offsetTop - pos2) + "px";
-                element.style.left = (element.offsetLeft - pos1) + "px";
-                element.style.transform = "none";
-            }
-
-            function dragTouchStart(e) {
-                const touch = e.touches[0];
-                pos3 = touch.clientX;
-                pos4 = touch.clientY;
-                document.ontouchend = closeDragElement;
-                document.ontouchmove = elementTouchDrag;
-            }
-
-            function elementTouchDrag(e) {
-                const touch = e.touches[0];
-                pos1 = pos3 - touch.clientX;
-                pos2 = pos4 - touch.clientY;
-                pos3 = touch.clientX;
-                pos4 = touch.clientY;
-                element.style.top = (element.offsetTop - pos2) + "px";
-                element.style.left = (element.offsetLeft - pos1) + "px";
-                element.style.transform = "none";
-            }
-
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-                document.ontouchend = null;
-                document.ontouchmove = null;
-                element.style.cursor = 'grab';
-            }
+            function dragMouseDown(e) { e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY; document.onmouseup = close; document.onmousemove = drag; element.style.cursor = 'grabbing'; }
+            function drag(e) { e.preventDefault(); pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY; pos3 = e.clientX; pos4 = e.clientY; element.style.top = (element.offsetTop - pos2) + "px"; element.style.left = (element.offsetLeft - pos1) + "px"; element.style.transform = "none"; }
+            function dragTouchStart(e) { const t = e.touches[0]; pos3 = t.clientX; pos4 = t.clientY; document.ontouchend = close; document.ontouchmove = touchDrag; }
+            function touchDrag(e) { const t = e.touches[0]; pos1 = pos3 - t.clientX; pos2 = pos4 - t.clientY; pos3 = t.clientX; pos4 = t.clientY; element.style.top = (element.offsetTop - pos2) + "px"; element.style.left = (element.offsetLeft - pos1) + "px"; element.style.transform = "none"; }
+            function close() { document.onmouseup = null; document.onmousemove = null; document.ontouchend = null; document.ontouchmove = null; element.style.cursor = 'grab'; }
         }
 
-        // --- Export PNG ---
         function downloadImage() {
-            const canvasArea = document.getElementById('instagram-canvas');
-            const originalTransform = canvasArea.style.transform; 
-            canvasArea.style.transform = 'scale(1)'; // Force 1:1 for crisp shot
-            
-            html2canvas(canvasArea, {
-                scale: 3, 
-                useCORS: true,
-                backgroundColor: null,
-            }).then(canvas => {
+            const area = document.getElementById('instagram-canvas');
+            const originalTransform = area.style.transform;
+            area.style.transform = 'scale(1)';
+            html2canvas(area, { scale: 3, useCORS: true, backgroundColor: null }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `InstaCode-${Date.now()}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-                canvasArea.style.transform = originalTransform; 
-            }).catch(err => {
-                console.error("Image Export Error:", err);
-                showAlert("Failed to export image. Check console.");
-                canvasArea.style.transform = originalTransform;
+                area.style.transform = originalTransform;
             });
         }
 
-        // --- Export Video (MP4/WebM) ---
+        // --- Video Recorder ---
         let mediaRecorder;
         let recordedChunks = [];
         let isRecording = false;
         let autoStopTimer = null;
 
         function showExportInstructions() {
-             // 1. CRITICAL: Security Check
-            if (window.location.protocol === 'file:') {
-                showAlert("SECURITY ERROR: Video export does NOT work on local files (file://). You must open this HTML file via a Local Server (localhost) or HTTPS.");
-                return;
-            }
-            if (!isRecording) {
-                document.getElementById('video-instructions').style.display = 'flex';
-            } else {
-                // If already recording, button acts as stop
-                stopRecordingLogic();
-            }
+            document.getElementById('video-instructions').style.display = 'flex';
         }
-
         function closeInstructions() {
             document.getElementById('video-instructions').style.display = 'none';
         }
-
         function startAuthorizedRecording() {
             closeInstructions();
             toggleRecording();
@@ -977,169 +714,101 @@
             const canvasElement = document.getElementById('instagram-canvas');
             const duration = document.getElementById('video-duration').value;
 
-            // 2. Feature Detection
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                showAlert("Browser Error: Your browser does not support tab recording. Use Chrome, Edge, or Desktop Firefox.");
-                return;
-            }
-
             if (!isRecording) {
-                // START RECORDING
                 try {
-                    // Enter Focus Mode
+                    // Check Feature Policy if possible to fail early
+                    if (document.featurePolicy && !document.featurePolicy.allowsFeature('display-capture')) {
+                         throw new Error("permissions policy disallows display-capture");
+                    }
+
                     previewArea.classList.add('focus-mode');
-                    // Ensure 1:1 scale for recording
                     canvasElement.style.transform = 'scale(1)';
+                    await new Promise(r => setTimeout(r, 600));
 
-                    // Give UI time to settle
-                    await new Promise(r => setTimeout(r, 800));
-
-                    // Request Stream with high framerate hint and high res
                     const stream = await navigator.mediaDevices.getDisplayMedia({
                         video: { 
                             displaySurface: 'browser',
-                            frameRate: { ideal: 60, max: 60 }, // Enforce smoothness
-                            height: { ideal: 2160 }, // Hint for high res
-                            width: { ideal: 3840 }
+                            frameRate: { ideal: 60 },
+                            height: { ideal: 1080 } 
                         },
                         audio: false,
-                        preferCurrentTab: true,
-                        selfBrowserSurface: "include",
-                        systemAudio: "exclude",
-                        surfaceSwitching: "include",
-                        monitorTypeSurfaces: "exclude"
+                        preferCurrentTab: true
                     });
 
-                    // Smart Cropping (Chrome/Edge Only)
+                    // Cropping
                     const tracks = stream.getVideoTracks();
                     if (tracks.length > 0 && typeof CropTarget !== 'undefined') {
                         try {
                             const cropTarget = await CropTarget.fromElement(canvasElement);
                             await tracks[0].cropTo(cropTarget);
-                        } catch (err) {
-                            console.warn("Cropping failed, recording full tab instead:", err);
-                        }
+                        } catch (e) { console.warn("Crop failed", e); }
                     }
 
-                    // Mime Type Selection
-                    let mimeType = 'video/webm'; 
-                    if (MediaRecorder.isTypeSupported('video/mp4')) {
-                        mimeType = 'video/mp4';
-                    } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-                        mimeType = 'video/webm;codecs=vp9';
-                    }
+                    // Recording
+                    const options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 }; // 8Mbps Safe Mode
+                    if (MediaRecorder.isTypeSupported('video/mp4')) options.mimeType = 'video/mp4';
 
-                    // Setup Recorder with High Bitrate
-                    mediaRecorder = new MediaRecorder(stream, { 
-                        mimeType: mimeType,
-                        videoBitsPerSecond: 25000000 // 25 Mbps (Ultra Quality)
-                    });
-                    
-                    mediaRecorder.ondataavailable = function(e) {
-                        if (e.data.size > 0) {
-                            recordedChunks.push(e.data);
-                        }
-                    };
-
-                    mediaRecorder.onstop = function() {
-                        const blob = new Blob(recordedChunks, { type: mimeType });
+                    mediaRecorder = new MediaRecorder(stream, options);
+                    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(recordedChunks, { type: options.mimeType });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.style.display = 'none';
                         a.href = url;
-                        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-                        a.download = `InstaCode-Video-${Date.now()}.${ext}`;
+                        a.download = `InstaCode-Video-${Date.now()}.${options.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
                         document.body.appendChild(a);
                         a.click();
-                        window.URL.revokeObjectURL(url);
-                        
                         resetRecordingUI();
                     };
 
-                    // Update UI
                     isRecording = true;
                     recordedChunks = [];
-                    // Start recording (no timeslice = better performance for short clips)
-                    mediaRecorder.start(); 
-                    
-                    btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Generation';
+                    mediaRecorder.start();
+
+                    btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop';
                     btn.classList.add('btn-danger');
-                    btn.classList.remove('btn-primary');
                     indicator.style.display = 'block';
 
-                    // AUTO STOP LOGIC
                     if (duration !== 'manual') {
                         const ms = parseInt(duration);
-                        let remaining = ms / 1000;
-                        indicator.innerHTML = `<i class="fa-solid fa-circle"></i> GENERATING (${remaining}s)...`;
-                        
-                        // Countdown visual
-                        const countdown = setInterval(() => {
-                            if(!isRecording) { clearInterval(countdown); return; }
-                            remaining--;
-                            if (remaining > 0) {
-                                indicator.innerHTML = `<i class="fa-solid fa-circle"></i> GENERATING (${remaining}s)...`;
-                            }
-                        }, 1000);
-
-                        autoStopTimer = setTimeout(() => {
-                            clearInterval(countdown);
-                            stopRecordingLogic();
-                        }, ms);
+                        let s = ms / 1000;
+                        indicator.innerText = `GENERATING (${s}s)...`;
+                        const cd = setInterval(() => { s--; indicator.innerText = `GENERATING (${s}s)...`; if(s<=0) clearInterval(cd); }, 1000);
+                        autoStopTimer = setTimeout(() => stopRecordingLogic(), ms);
                     }
 
-                    // If user stops sharing via browser UI
-                    stream.getVideoTracks()[0].onended = () => {
-                        if (isRecording) stopRecordingLogic();
-                    };
+                    stream.getVideoTracks()[0].onended = () => { if(isRecording) stopRecordingLogic(); };
 
                 } catch (err) {
-                    console.error("Recording Error:", err);
-                    
-                    // --- NEW ERROR HANDLING FOR PERMISSION POLICY ---
-                    if (err.name === 'NotAllowedError') {
-                        if (err.message.includes("permissions policy") || err.message.includes("display-capture")) {
-                            showAlert("Preview Restriction: This environment blocks screen recording. Please Download this HTML file and run it locally to export videos.");
-                        } else {
-                            // User clicked cancel or didn't select a tab
-                            showAlert("Export Cancelled. Tip: You MUST click the 'InstaCode' list item to unlock the Share button.");
-                        }
+                    console.error(err);
+                    if (err.name === 'NotAllowedError' && (err.message.includes('policy') || err.message.includes('disallowed'))) {
+                        showAlert("RESTRICTED ENVIRONMENT: You cannot record inside this preview. Please DOWNLOAD the HTML file and run it on your computer.");
+                    } else if (err.name === 'NotAllowedError') {
+                        showAlert("Cancelled. You must click 'Share' in the popup.");
                     } else {
-                        showAlert("Recording Failed: " + err.message);
+                        showAlert("Error: " + err.message);
                     }
                     resetRecordingUI();
                 }
-
             } else {
-                // STOP RECORDING
                 stopRecordingLogic();
             }
         }
 
         function stopRecordingLogic() {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-                if (mediaRecorder.stream) {
-                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                }
-            }
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+            if (mediaRecorder && mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t => t.stop());
             if (autoStopTimer) clearTimeout(autoStopTimer);
         }
 
         function resetRecordingUI() {
-            const btn = document.getElementById('btn-record');
-            const indicator = document.getElementById('rec-indicator');
-            const previewArea = document.getElementById('main-preview-area');
-            
             isRecording = false;
-            btn.innerHTML = '<i class="fa-solid fa-video"></i> Export Video (MP4)';
-            btn.classList.remove('btn-danger');
-            btn.classList.add('btn-primary');
-            indicator.style.display = 'none';
-            indicator.innerHTML = '<i class="fa-solid fa-circle"></i> GENERATING VIDEO...';
-            
-            previewArea.classList.remove('focus-mode');
-            fitCanvas(); // Restore scaling
+            document.getElementById('btn-record').innerHTML = '<i class="fa-solid fa-video"></i> Export Video (MP4)';
+            document.getElementById('btn-record').classList.remove('btn-danger');
+            document.getElementById('rec-indicator').style.display = 'none';
+            document.getElementById('main-preview-area').classList.remove('focus-mode');
+            fitCanvas();
         }
     </script>
 </body>
