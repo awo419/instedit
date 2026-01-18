@@ -992,18 +992,22 @@
                     canvasElement.style.transform = 'scale(1)';
 
                     // Give UI time to settle
-                    await new Promise(r => setTimeout(r, 600));
+                    await new Promise(r => setTimeout(r, 800));
 
-                    // Request Stream with high framerate hint
+                    // Request Stream with high framerate hint and high res
                     const stream = await navigator.mediaDevices.getDisplayMedia({
                         video: { 
-                            mediaSource: 'tab',
-                            cursor: 'never',
                             displaySurface: 'browser',
-                            frameRate: { ideal: 60 } // Request 60fps
+                            frameRate: { ideal: 60, max: 60 }, // Enforce smoothness
+                            height: { ideal: 2160 }, // Hint for high res
+                            width: { ideal: 3840 }
                         },
                         audio: false,
-                        preferCurrentTab: true 
+                        preferCurrentTab: true,
+                        selfBrowserSurface: "include",
+                        systemAudio: "exclude",
+                        surfaceSwitching: "include",
+                        monitorTypeSurfaces: "exclude"
                     });
 
                     // Smart Cropping (Chrome/Edge Only)
@@ -1025,10 +1029,10 @@
                         mimeType = 'video/webm;codecs=vp9';
                     }
 
-                    // Setup Recorder
+                    // Setup Recorder with High Bitrate
                     mediaRecorder = new MediaRecorder(stream, { 
                         mimeType: mimeType,
-                        videoBitsPerSecond: 5000000 // 5 Mbps (Balanced)
+                        videoBitsPerSecond: 25000000 // 25 Mbps (Ultra Quality)
                     });
                     
                     mediaRecorder.ondataavailable = function(e) {
@@ -1055,8 +1059,8 @@
                     // Update UI
                     isRecording = true;
                     recordedChunks = [];
-                    // Start with 1 second chunks for better stability
-                    mediaRecorder.start(1000); 
+                    // Start recording (no timeslice = better performance for short clips)
+                    mediaRecorder.start(); 
                     
                     btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Generation';
                     btn.classList.add('btn-danger');
