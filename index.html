@@ -144,7 +144,8 @@
             box-shadow: 0 50px 100px -20px rgba(0,0,0,0.7);
             display: flex; flex-direction: column; overflow: hidden;
             flex-shrink: 0; border-radius: 4px;
-            /* Important: Use default easing for resize, but layout changes should be instant */
+            /* Default easing for resize, but layout changes should be instant */
+            transition: transform 0.2s ease-out;
             transform-origin: center center;
         }
 
@@ -426,9 +427,13 @@ function createMagic() {
             setTimeout(() => { alertBox.style.display = 'none'; }, 6000);
         }
 
+        // --- SMART FIT FOR DISPLAY ---
         function fitCanvas() {
             const container = document.getElementById('main-preview-area');
             const canvas = document.getElementById('instagram-canvas');
+            // Don't resize if we are in recording mode (the recorder handles that)
+            if (document.body.classList.contains('recording-active')) return;
+
             if (window.innerWidth <= 900) return;
             
             const availableWidth = container.clientWidth - 80;
@@ -593,12 +598,30 @@ function createMagic() {
                          throw new Error("permissions policy disallows display-capture");
                     }
 
+                    document.body.classList.add('recording-active');
                     previewArea.classList.add('focus-mode');
                     
-                    // --- SENIOR DEV FIX: SUPER-SAMPLING & CENTERING ---
-                    // Force a large scale to capture high resolution pixels
-                    // Instagram 1080px width / Base 400px width = 2.7 scale
-                    canvasElement.style.transform = 'scale(2.7)'; 
+                    // --- SMART MAX-FIT ALGORITHM ---
+                    // 1. Get user's available screen space
+                    const screenW = window.innerWidth;
+                    const screenH = window.innerHeight;
+                    
+                    // 2. Base dimensions of our card (400x500 default)
+                    // We need to read current css var or computed style to be sure
+                    const baseW = 400; 
+                    const baseH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--preview-height')) || 500;
+
+                    // 3. Calculate max safe scale (leaving 50px padding)
+                    const safeW = screenW - 100;
+                    const safeH = screenH - 100;
+                    const scaleX = safeW / baseW;
+                    const scaleY = safeH / baseH;
+                    
+                    // 4. Use the smaller scale to ensure it fits perfectly without cropping
+                    const finalScale = Math.min(scaleX, scaleY);
+                    
+                    // Apply scale
+                    canvasElement.style.transform = `scale(${finalScale})`; 
                     
                     await new Promise(r => setTimeout(r, 800)); // Allow render to settle
 
@@ -691,6 +714,7 @@ function createMagic() {
 
         function resetRecordingUI() {
             isRecording = false;
+            document.body.classList.remove('recording-active');
             document.getElementById('btn-record').innerHTML = '<i class="fa-solid fa-video"></i> Export Video (MP4)';
             document.getElementById('btn-record').classList.remove('btn-danger');
             document.getElementById('rec-indicator').style.display = 'none';
