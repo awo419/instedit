@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <!-- html2canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- PrismJS (Professional Syntax Highlighting) -->
+    <!-- PrismJS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
@@ -18,7 +18,6 @@
 
     <style>
         :root {
-            /* Theme Variables */
             --app-bg: #0d1117;
             --sidebar-bg: #161b22;
             --border-color: #30363d;
@@ -54,7 +53,6 @@
             height: 100%;
         }
 
-        /* --- Sidebar --- */
         .sidebar {
             width: 380px;
             min-width: 320px;
@@ -81,12 +79,7 @@
             padding-bottom: 5px;
         }
 
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
+        .control-group { display: flex; flex-direction: column; gap: 6px; }
         label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
         
         input[type="text"], textarea, select, input[type="number"], input[type="range"] {
@@ -99,251 +92,135 @@
             font-size: 0.9rem;
             transition: border-color 0.2s;
         }
-
-        input[type="text"]:focus, textarea:focus, select:focus {
-            outline: none;
-            border-color: #58a6ff;
-        }
-
+        input[type="text"]:focus, textarea:focus, select:focus { outline: none; border-color: #58a6ff; }
         textarea { font-family: 'Fira Code', monospace; font-size: 0.8rem; }
-
         .row-group { display: flex; gap: 10px; }
         .col-half { flex: 1; display: flex; flex-direction: column; gap: 5px; }
 
-        /* Buttons */
-        .action-buttons {
-            margin-top: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding-top: 20px;
+        input[type="file"]::file-selector-button {
+            background: #21262d; border: 1px solid rgba(240,246,252,0.1); color: var(--text-main);
+            padding: 6px 12px; border-radius: 6px; margin-right: 10px; cursor: pointer;
         }
 
+        .action-buttons { margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding-top: 20px; }
         .btn {
-            border: 1px solid rgba(240,246,252,0.1);
-            padding: 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
+            border: 1px solid rgba(240,246,252,0.1); padding: 14px; border-radius: 6px; cursor: pointer;
+            font-weight: 600; font-size: 0.95rem; display: flex; justify-content: center; align-items: center; gap: 8px; transition: all 0.2s;
         }
-
         .btn-primary { background-color: var(--accent); color: white; }
         .btn-primary:hover { background-color: #2ea043; }
-        
         .btn-danger { background-color: #da3633; color: white; }
-        .btn-danger:hover { background-color: #b62324; }
-        
         .btn-secondary { background-color: #21262d; color: var(--text-main); }
         .btn-secondary:hover { background-color: #30363d; }
 
         /* --- Preview Area --- */
         .preview-area {
             flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; justify-content: center; align-items: center;
             background-color: #010409;
             background-image: radial-gradient(#30363d 1px, transparent 1px);
             background-size: 20px 20px;
-            padding: 20px;
-            overflow: hidden;
-            position: relative;
+            padding: 20px; overflow: hidden; position: relative;
         }
-
         .preview-area.focus-mode {
-            background: #000;
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: 100;
-            padding: 0;
+            background: #000; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 100; padding: 0;
         }
 
-        /* Indicator */
         .recording-overlay {
-            position: absolute;
-            top: 30px; right: 30px;
-            background: rgba(220, 38, 38, 0.9);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 30px;
-            font-weight: bold;
-            display: none;
-            animation: pulse 1.5s infinite;
-            z-index: 200;
-            box-shadow: 0 0 15px rgba(220, 38, 38, 0.5);
-            font-size: 0.9rem;
+            position: absolute; top: 30px; right: 30px; background: rgba(220, 38, 38, 0.9);
+            color: white; padding: 8px 16px; border-radius: 30px; font-weight: bold;
+            display: none; animation: pulse 1.5s infinite; z-index: 200;
+            box-shadow: 0 0 15px rgba(220, 38, 38, 0.5); font-size: 0.9rem;
         }
         @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0.8; } }
 
-        /* --- THE CANVAS (Instagram Card) --- */
+        /* --- THE CANVAS --- */
         #instagram-canvas {
             width: var(--preview-width);
             height: var(--preview-height);
             background-color: var(--canvas-bg);
             position: relative;
             box-shadow: 0 50px 100px -20px rgba(0,0,0,0.7);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            flex-shrink: 0;
-            border-radius: 4px;
-            transition: transform 0.3s;
-            transform-origin: center center;
+            display: flex; flex-direction: column; overflow: hidden;
+            flex-shrink: 0; border-radius: 4px;
+            transition: transform 0.3s; transform-origin: center center;
         }
 
-        /* Profile Header */
-        .canvas-header {
-            padding: 14px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 2;
-            flex-shrink: 0;
-        }
-
-        .header-left { display: flex; align-items: center; gap: 10px; }
-
-        .avatar-container {
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-            padding: 2px;
-            display: flex; justify-content: center; align-items: center;
-        }
-
-        .avatar-img {
-            width: 100%; height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            background: #000;
-            border: 2px solid var(--canvas-bg);
-        }
-
-        .header-info { display: flex; flex-direction: column; justify-content: center; }
-
-        .canvas-username {
-            font-size: 0.9rem; font-weight: 700; color: var(--canvas-text);
-            line-height: 1; display: flex; align-items: center; gap: 6px;
-        }
-
-        .follow-text { color: #3897f0; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
-        .dot-separator { font-size: 0.6rem; color: #888; }
-        .header-options { color: var(--canvas-text); font-size: 1rem; cursor: pointer; }
-
-        /* Content Split */
+        /* Split Container & Layouts */
         .split-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 0 16px;
-            gap: 12px;
-            height: 100%;
-            overflow: hidden;
-            position: relative;
+            flex: 1; display: flex; flex-direction: column;
+            padding: 16px; gap: 12px; height: 100%; overflow: hidden; position: relative;
         }
 
-        /* Result Section (Top) */
+        /* Grid Layout Variations */
+        .split-container.layout-even .result-section { flex: 1; }
+        .split-container.layout-even .code-section { flex: 1; }
+
+        .split-container.layout-result-focus .result-section { flex: 3; }
+        .split-container.layout-result-focus .code-section { flex: 1; }
+
+        .split-container.layout-code-focus .result-section { flex: 1; }
+        .split-container.layout-code-focus .code-section { flex: 3; }
+
+        .split-container.layout-overlay .result-section { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 0; z-index: 1; 
+        }
+        .split-container.layout-overlay .code-section { 
+            position: absolute; bottom: 20px; left: 20px; right: 20px; height: 40%; z-index: 2; 
+            background: rgba(30, 30, 30, 0.85); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Content Sections */
         .result-section {
-            flex: 1;
-            background: #000;
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            min-height: 0;
+            background: #000; border-radius: 8px; overflow: hidden; position: relative;
+            border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); min-height: 0; transition: flex 0.3s ease;
         }
-
         .result-media { width: 100%; height: 100%; object-fit: contain; }
-        
         .placeholder-text {
-            color: #555; font-size: 0.8rem;
-            display: flex; flex-direction: column; align-items: center;
-            gap: 10px; text-align: center;
+            color: #555; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
         }
 
-        /* Code Section (Bottom) */
         .code-section {
-            flex: 1;
-            background: var(--code-bg);
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex; flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            min-height: 0;
+            background: var(--code-bg); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+            display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            min-height: 0; transition: flex 0.3s ease;
         }
-
         .window-bar {
-            background: rgba(255,255,255,0.05);
-            padding: 8px 12px;
-            display: flex; align-items: center; gap: 6px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            flex-shrink: 0;
+            background: rgba(255,255,255,0.05); padding: 8px 12px; display: flex; align-items: center; gap: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;
         }
-
         .dot { width: 10px; height: 10px; border-radius: 50%; }
         .dot.red { background: #ff5f56; }
         .dot.yellow { background: #ffbd2e; }
         .dot.green { background: #27c93f; }
 
         .code-content {
-            flex: 1;
-            padding: 10px;
-            overflow: hidden;
-            position: relative;
-            background: var(--code-bg);
+            flex: 1; padding: 10px; overflow: hidden; position: relative; background: var(--code-bg);
         }
+        /* Prism overrides */
+        pre[class*="language-"] { margin: 0 !important; padding: 0 !important; background: transparent !important; text-shadow: none !important; font-family: 'Fira Code', monospace !important; font-size: var(--font-size-code) !important; }
+        code[class*="language-"] { font-family: 'Fira Code', monospace !important; white-space: pre-wrap !important; }
+        .code-image-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
 
-        /* PrismJS Overrides for cleaner look */
-        pre[class*="language-"] {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: transparent !important;
-            text-shadow: none !important;
-            font-family: 'Fira Code', monospace !important;
-            font-size: var(--font-size-code) !important;
-        }
-        code[class*="language-"] {
-            font-family: 'Fira Code', monospace !important;
-            white-space: pre-wrap !important;
-        }
-        
-        .code-image-preview {
-            width: 100%; height: 100%; object-fit: cover; display: none;
-        }
-
-        /* Footer / Actions */
+        /* Minimal Footer */
         .canvas-footer {
-            padding: 12px 16px;
-            display: flex; justify-content: space-between; align-items: center;
-            color: var(--canvas-text); font-size: 1.4rem; z-index: 5;
+            padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;
+            color: var(--canvas-text); font-size: 1.1rem; z-index: 5; opacity: 0.8;
         }
-        
-        .action-icons { display: flex; gap: 16px; }
+        .action-icons { display: flex; gap: 14px; }
         .action-icon { cursor: pointer; transition: transform 0.2s; }
-        .action-icon:hover { transform: scale(1.1); color: var(--text-muted); }
+        .action-icon:hover { transform: scale(1.1); color: #fff; opacity: 1; }
         .fa-heart:hover { color: #ed4956; }
 
-        /* Sticker */
         .cta-sticker {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-            color: white; padding: 8px 16px;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: white; padding: 8px 16px;
             border-radius: 20px; font-weight: 700; font-size: 0.85rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            cursor: grab; z-index: 20; user-select: none; white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: grab; z-index: 20; user-select: none; white-space: nowrap;
             border: 2px solid rgba(255,255,255,0.2);
         }
-        .cta-sticker:active { cursor: grabbing; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
+        .cta-sticker:active { cursor: grabbing; }
 
         /* Mobile */
         @media (max-width: 900px) {
@@ -352,18 +229,12 @@
             .preview-area { min-height: 80vh; padding: 40px 20px; overflow: hidden; }
         }
 
-        /* Custom Alert */
+        /* Alert/Modal */
         #custom-alert {
-            position: fixed; top: 20px; left: 50%;
-            transform: translateX(-50%);
-            background: #da3633; color: white;
-            padding: 15px 25px; border-radius: 8px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            z-index: 2000; display: none;
-            font-weight: 600; text-align: center; max-width: 90%;
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #da3633; color: white; padding: 15px 25px; border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5); z-index: 2000; display: none; font-weight: 600; text-align: center; max-width: 90%;
         }
-
-        /* Modal */
         #video-instructions {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 2000; display: none;
@@ -385,15 +256,13 @@
 
     <div id="video-instructions">
         <h3><i class="fa-solid fa-video"></i> Video Export Guide</h3>
-        <p>You must grant permission to capture the tab contents.</p>
+        <p>Ensure you select "Share Tab Audio" if using background music.</p>
         <ul class="steps">
-            <li><i class="fa-solid fa-1"></i> In the popup, select <strong>"Chrome Tab"</strong> (or "This Tab").</li>
-            <li><i class="fa-solid fa-2"></i> <strong>CLICK</strong> on <strong>"InstaCode Generator"</strong> in the list.</li>
-            <li><i class="fa-solid fa-3"></i> Click the blue <strong>"Share"</strong> button.</li>
+            <li><i class="fa-solid fa-1"></i> In the popup, select <strong>"Chrome Tab"</strong>.</li>
+            <li><i class="fa-solid fa-2"></i> <strong>CLICK</strong> on <strong>"InstaCode Generator"</strong>.</li>
+            <li><i class="fa-solid fa-3"></i> <strong>CHECK</strong> the "Share Tab Audio" box (bottom left).</li>
+            <li><i class="fa-solid fa-4"></i> Click <strong>"Share"</strong>.</li>
         </ul>
-        <div style="margin-bottom: 20px; font-size: 0.85rem; color: #ff7b72; background: rgba(255,0,0,0.1); padding: 10px; border-radius: 4px;">
-            <i class="fa-solid fa-triangle-exclamation"></i> IF YOU ARE IN A PREVIEW WINDOW, THIS WILL FAIL.<br>PLEASE DOWNLOAD THE FILE FIRST.
-        </div>
         <button class="btn-confirm" onclick="startAuthorizedRecording()">I'm Running Locally, Start</button>
         <button class="btn" style="margin-top:10px; background:transparent; border:none; color:#888; text-decoration:underline; cursor:pointer;" onclick="closeInstructions()">Cancel</button>
     </div>
@@ -403,7 +272,17 @@
         <aside class="sidebar">
             <h2><i class="fa-solid fa-layer-group"></i> InstaCode Pro</h2>
 
-            <div class="section-title">Appearance</div>
+            <div class="section-title">Layout & Style</div>
+            <div class="control-group">
+                <label>Grid Layout</label>
+                <select id="layout-select" onchange="changeLayout()">
+                    <option value="layout-even">Even Split (50/50)</option>
+                    <option value="layout-result-focus">Result Focus (Big Top)</option>
+                    <option value="layout-code-focus">Code Focus (Big Bottom)</option>
+                    <option value="layout-overlay">Overlay (Code on Top)</option>
+                </select>
+            </div>
+            
             <div class="row-group">
                 <div class="col-half">
                     <label>Theme</label>
@@ -424,14 +303,9 @@
                 </div>
             </div>
 
+            <div class="section-title">Content Assets</div>
             <div class="control-group">
-                <label>Profile Name</label>
-                <input type="text" id="input-title" value="CodeDaily" oninput="updateText()">
-            </div>
-
-            <div class="section-title">Content</div>
-            <div class="control-group">
-                <label>Result Media (Video/Image)</label>
+                <label>Result Media</label>
                 <input type="file" id="file-result" accept="image/*,video/*" onchange="handleFile(this, 'result-preview')">
             </div>
 
@@ -446,10 +320,9 @@
                 </div>
                 <div id="code-text-group">
                     <textarea id="input-code" rows="6" oninput="updateCode()">
-function sayHello() {
-  const msg = "InstaCode is awesome!";
-  console.log(msg);
-  return true;
+function createMagic() {
+  const visual = new Visuals();
+  visual.render('✨');
 }</textarea>
                 </div>
                 <div id="code-upload-group" style="display:none;">
@@ -457,26 +330,27 @@ function sayHello() {
                 </div>
             </div>
 
-            <div class="section-title">Overlays</div>
+            <div class="section-title">Audio & Overlays</div>
+            <div class="control-group">
+                <label>Background Music (MP3)</label>
+                <input type="file" id="bg-music" accept="audio/*" onchange="handleAudio(this)">
+            </div>
             <div class="control-group">
                 <label>Sticker Text</label>
                 <input type="text" id="input-cta" value="Save for later 🔖" oninput="updateText()">
             </div>
-            <div class="control-group">
-                <label>Profile Avatar</label>
-                <input type="file" id="file-logo" accept="image/*" onchange="handleFile(this, 'avatar-img')">
-            </div>
 
             <div class="action-buttons">
                 <button class="btn btn-secondary" onclick="downloadImage()">
-                    <i class="fa-solid fa-image"></i> Download Image (PNG)
+                    <i class="fa-solid fa-image"></i> Download PNG
                 </button>
                 <div class="control-group">
                     <label>Video Duration</label>
                     <select id="video-duration">
                         <option value="manual">Manual Stop</option>
-                        <option value="5000">5 Seconds (Auto)</option>
-                        <option value="10000">10 Seconds (Auto)</option>
+                        <option value="5000">5 Seconds</option>
+                        <option value="10000">10 Seconds</option>
+                        <option value="15000">15 Seconds</option>
                     </select>
                 </div>
                 <button class="btn btn-primary" id="btn-record" onclick="showExportInstructions()">
@@ -492,31 +366,16 @@ function sayHello() {
             </div>
             
             <div id="instagram-canvas">
-                <!-- Header -->
-                <div class="canvas-header">
-                    <div class="header-left">
-                        <div class="avatar-container">
-                            <img src="https://ui-avatars.com/api/?name=CD&background=random" id="avatar-img" class="avatar-img" alt="Avatar">
-                        </div>
-                        <div class="header-info">
-                            <div class="canvas-username">
-                                <span id="preview-title">CodeDaily</span>
-                                <span class="dot-separator">•</span>
-                                <span class="follow-text">Follow</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="header-options"><i class="fa-solid fa-ellipsis"></i></div>
-                </div>
+                <!-- No Header -->
 
                 <!-- Content -->
-                <div class="split-container">
+                <div class="split-container layout-even" id="split-layout">
                     <div class="result-section">
                         <img src="" class="result-media" id="result-preview" style="display:none;">
                         <video loop autoplay muted playsinline class="result-media" id="result-video-preview" style="display:none;"></video>
                         <div id="result-placeholder" class="placeholder-text">
                             <i class="fa-solid fa-play-circle fa-2x" style="opacity:0.5;"></i>
-                            <span>Upload Result</span>
+                            <span>Result</span>
                         </div>
                     </div>
 
@@ -525,7 +384,6 @@ function sayHello() {
                             <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
                         </div>
                         <div class="code-content">
-                            <!-- Prism Code Block -->
                             <pre class="language-javascript" id="code-text-display"><code id="prism-code-target"></code></pre>
                             <img src="" class="code-image-preview" id="code-img-preview">
                         </div>
@@ -534,7 +392,7 @@ function sayHello() {
                     <div class="cta-sticker" id="cta-sticker">Save for later 🔖</div>
                 </div>
 
-                <!-- Footer -->
+                <!-- Minimal Footer -->
                 <div class="canvas-footer">
                     <div class="action-icons">
                         <i class="fa-regular fa-heart action-icon"></i>
@@ -545,6 +403,9 @@ function sayHello() {
                 </div>
             </div>
         </main>
+        
+        <!-- Hidden Audio Player -->
+        <audio id="audio-player" loop hidden></audio>
     </div>
 
     <script>
@@ -581,13 +442,18 @@ function sayHello() {
         }
 
         function updateText() {
-            document.getElementById('preview-title').innerText = document.getElementById('input-title').value;
             document.getElementById('cta-sticker').innerText = document.getElementById('input-cta').value;
         }
 
         function updateFontSize() {
             const size = document.getElementById('font-size-slider').value;
             document.documentElement.style.setProperty('--font-size-code', size + 'px');
+        }
+
+        function changeLayout() {
+            const layout = document.getElementById('layout-select').value;
+            const container = document.getElementById('split-layout');
+            container.className = `split-container ${layout}`;
         }
 
         function toggleCodeMode() {
@@ -614,8 +480,6 @@ function sayHello() {
         function updateCode() {
             const rawCode = document.getElementById('input-code').value;
             const target = document.getElementById('prism-code-target');
-            
-            // Escape HTML to prevent injection, then highlight
             target.textContent = rawCode;
             Prism.highlightElement(target);
         }
@@ -623,7 +487,6 @@ function sayHello() {
         function applyTheme() {
             const theme = document.getElementById('theme-select').value;
             const root = document.documentElement;
-            // Simplified theme application for brevity
             const themes = {
                 'dark': { bg: '#1e1e1e', txt: '#fff' },
                 'dracula': { bg: '#282a36', txt: '#f8f8f2' },
@@ -634,7 +497,6 @@ function sayHello() {
             root.style.setProperty('--canvas-bg', t.bg);
             root.style.setProperty('--canvas-text', t.txt);
             root.style.setProperty('--code-bg', t.bg);
-            // Re-highlight for prism theme adjustment if needed (Prism uses own CSS, this is canvas BG)
         }
 
         function changeAspectRatio() {
@@ -664,6 +526,13 @@ function sayHello() {
                 }
             }
             reader.readAsDataURL(file);
+        }
+
+        function handleAudio(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const player = document.getElementById('audio-player');
+            player.src = URL.createObjectURL(file);
         }
 
         function makeDraggable(element) {
@@ -713,10 +582,11 @@ function sayHello() {
             const previewArea = document.getElementById('main-preview-area');
             const canvasElement = document.getElementById('instagram-canvas');
             const duration = document.getElementById('video-duration').value;
+            const audioPlayer = document.getElementById('audio-player');
 
             if (!isRecording) {
                 try {
-                    // Check Feature Policy if possible to fail early
+                    // Check Feature Policy if possible
                     if (document.featurePolicy && !document.featurePolicy.allowsFeature('display-capture')) {
                          throw new Error("permissions policy disallows display-capture");
                     }
@@ -731,7 +601,7 @@ function sayHello() {
                             frameRate: { ideal: 60 },
                             height: { ideal: 1080 } 
                         },
-                        audio: false,
+                        audio: true, // Request audio!
                         preferCurrentTab: true
                     });
 
@@ -745,7 +615,7 @@ function sayHello() {
                     }
 
                     // Recording
-                    const options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 }; // 8Mbps Safe Mode
+                    const options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 };
                     if (MediaRecorder.isTypeSupported('video/mp4')) options.mimeType = 'video/mp4';
 
                     mediaRecorder = new MediaRecorder(stream, options);
@@ -765,6 +635,11 @@ function sayHello() {
                     isRecording = true;
                     recordedChunks = [];
                     mediaRecorder.start();
+                    
+                    // Start Background Music
+                    if(audioPlayer.src) {
+                        audioPlayer.play().catch(e => console.log("Audio play blocked", e));
+                    }
 
                     btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop';
                     btn.classList.add('btn-danger');
@@ -797,9 +672,14 @@ function sayHello() {
         }
 
         function stopRecordingLogic() {
+            const audioPlayer = document.getElementById('audio-player');
             if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
             if (mediaRecorder && mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t => t.stop());
             if (autoStopTimer) clearTimeout(autoStopTimer);
+            
+            // Stop Music
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
         }
 
         function resetRecordingUI() {
