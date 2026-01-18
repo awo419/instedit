@@ -394,12 +394,50 @@
             text-align: center;
             max-width: 90%;
         }
+
+        /* Video Instructions Modal */
+        #video-instructions {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 20px;
+        }
+        #video-instructions h3 { margin-bottom: 15px; font-size: 1.5rem; }
+        #video-instructions p { margin-bottom: 20px; color: #ccc; max-width: 500px; line-height: 1.6; }
+        #video-instructions .steps { text-align: left; background: #222; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #444; }
+        #video-instructions .steps li { margin-bottom: 10px; list-style: none; }
+        #video-instructions .steps i { color: #58a6ff; width: 20px; }
+        .btn-confirm { background: #238636; color: white; border: none; padding: 12px 24px; font-size: 1rem; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-confirm:hover { background: #2ea043; }
     </style>
 </head>
 <body>
 
     <!-- Custom Alert Box -->
     <div id="custom-alert"></div>
+
+    <!-- Video Guide Modal -->
+    <div id="video-instructions">
+        <h3><i class="fa-solid fa-video"></i> One Last Step</h3>
+        <p>Browsers require permission to generate video files.</p>
+        <ul class="steps">
+            <li><i class="fa-solid fa-1"></i> A system popup will appear. Click the <strong>"Chrome Tab"</strong> tab at the top.</li>
+            <li><i class="fa-solid fa-2"></i> <strong>IMPORTANT:</strong> Click on <strong>"InstaCode Generator"</strong> in the list.</li>
+            <li><i class="fa-solid fa-3"></i> The blue <strong>"Share"</strong> button will light up. Click it to start.</li>
+        </ul>
+        <div style="margin-bottom: 20px; font-size: 0.85rem; color: #ff7b72; background: rgba(255,0,0,0.1); padding: 10px; border-radius: 4px;">
+            <i class="fa-solid fa-triangle-exclamation"></i> If you don't click the list item, the Share button stays grey!
+        </div>
+        <button class="btn-confirm" onclick="startAuthorizedRecording()">Got it, Open Popup</button>
+        <button class="btn" style="margin-top:10px; background:transparent; border:none; color:#888; text-decoration:underline; cursor:pointer;" onclick="closeInstructions()">Cancel</button>
+    </div>
 
     <div class="app-container">
         <!-- SIDEBAR CONTROLS -->
@@ -491,19 +529,27 @@
                 <button class="btn btn-secondary" onclick="downloadImage()">
                     <i class="fa-solid fa-image"></i> Download Image (PNG)
                 </button>
-                <button class="btn btn-primary" id="btn-record" onclick="toggleRecording()">
+                
+                <div class="control-group">
+                    <label>Video Duration</label>
+                    <select id="video-duration">
+                        <option value="manual">Manual Stop</option>
+                        <option value="5000">5 Seconds (Auto)</option>
+                        <option value="10000">10 Seconds (Auto)</option>
+                        <option value="15000">15 Seconds (Auto)</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-primary" id="btn-record" onclick="showExportInstructions()">
                     <i class="fa-solid fa-video"></i> Export Video (MP4)
                 </button>
-                <p style="font-size: 0.7rem; color: #666; text-align: center;">
-                    <strong>Desktop Only:</strong> Select "This Tab" in the browser popup.
-                </p>
             </div>
         </aside>
 
         <!-- PREVIEW AREA -->
         <main class="preview-area" id="main-preview-area">
             <div class="recording-overlay" id="rec-indicator">
-                <i class="fa-solid fa-circle"></i> RECORDING
+                <i class="fa-solid fa-circle"></i> GENERATING VIDEO...
             </div>
             
             <div id="instagram-canvas">
@@ -567,7 +613,7 @@
             alertBox.style.display = 'block';
             setTimeout(() => {
                 alertBox.style.display = 'none';
-            }, 5000);
+            }, 8000); // Increased timeout for reading long messages
         }
 
         // --- Smart Scaling ---
@@ -805,18 +851,37 @@
         let mediaRecorder;
         let recordedChunks = [];
         let isRecording = false;
+        let autoStopTimer = null;
+
+        function showExportInstructions() {
+             // 1. CRITICAL: Security Check
+            if (window.location.protocol === 'file:') {
+                showAlert("SECURITY ERROR: Video export does NOT work on local files (file://). You must open this HTML file via a Local Server (localhost) or HTTPS.");
+                return;
+            }
+            if (!isRecording) {
+                document.getElementById('video-instructions').style.display = 'flex';
+            } else {
+                // If already recording, button acts as stop
+                stopRecordingLogic();
+            }
+        }
+
+        function closeInstructions() {
+            document.getElementById('video-instructions').style.display = 'none';
+        }
+
+        function startAuthorizedRecording() {
+            closeInstructions();
+            toggleRecording();
+        }
 
         async function toggleRecording() {
             const btn = document.getElementById('btn-record');
             const indicator = document.getElementById('rec-indicator');
             const previewArea = document.getElementById('main-preview-area');
             const canvasElement = document.getElementById('instagram-canvas');
-
-            // 1. CRITICAL: Security Check
-            if (window.location.protocol === 'file:') {
-                showAlert("SECURITY ERROR: Video recording does NOT work on local files (file://). You must open this HTML file via a Local Server (localhost) or HTTPS.");
-                return;
-            }
+            const duration = document.getElementById('video-duration').value;
 
             // 2. Feature Detection
             if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
@@ -895,10 +960,31 @@
                     // Start with 200ms timeslice to ensure data even if stopped quickly
                     mediaRecorder.start(200); 
                     
-                    btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop & Save';
+                    btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Generation';
                     btn.classList.add('btn-danger');
                     btn.classList.remove('btn-primary');
                     indicator.style.display = 'block';
+
+                    // AUTO STOP LOGIC
+                    if (duration !== 'manual') {
+                        const ms = parseInt(duration);
+                        let remaining = ms / 1000;
+                        indicator.innerHTML = `<i class="fa-solid fa-circle"></i> GENERATING (${remaining}s)...`;
+                        
+                        // Countdown visual
+                        const countdown = setInterval(() => {
+                            if(!isRecording) { clearInterval(countdown); return; }
+                            remaining--;
+                            if (remaining > 0) {
+                                indicator.innerHTML = `<i class="fa-solid fa-circle"></i> GENERATING (${remaining}s)...`;
+                            }
+                        }, 1000);
+
+                        autoStopTimer = setTimeout(() => {
+                            clearInterval(countdown);
+                            stopRecordingLogic();
+                        }, ms);
+                    }
 
                     // If user stops sharing via browser UI
                     stream.getVideoTracks()[0].onended = () => {
@@ -907,8 +993,15 @@
 
                 } catch (err) {
                     console.error("Recording Error:", err);
+                    
+                    // --- NEW ERROR HANDLING FOR PERMISSION POLICY ---
                     if (err.name === 'NotAllowedError') {
-                        showAlert("Permission Denied: You must select 'This Tab' and click 'Share'.");
+                        if (err.message.includes("permissions policy") || err.message.includes("display-capture")) {
+                            showAlert("Preview Restriction: This environment blocks screen recording. Please Download this HTML file and run it locally to export videos.");
+                        } else {
+                            // User clicked cancel or didn't select a tab
+                            showAlert("Export Cancelled. Tip: You MUST click the 'InstaCode' list item to unlock the Share button.");
+                        }
                     } else {
                         showAlert("Recording Failed: " + err.message);
                     }
@@ -928,6 +1021,7 @@
                     mediaRecorder.stream.getTracks().forEach(track => track.stop());
                 }
             }
+            if (autoStopTimer) clearTimeout(autoStopTimer);
         }
 
         function resetRecordingUI() {
@@ -940,6 +1034,7 @@
             btn.classList.remove('btn-danger');
             btn.classList.add('btn-primary');
             indicator.style.display = 'none';
+            indicator.innerHTML = '<i class="fa-solid fa-circle"></i> GENERATING VIDEO...';
             
             previewArea.classList.remove('focus-mode');
             fitCanvas(); // Restore scaling
