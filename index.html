@@ -124,6 +124,7 @@
         }
         .preview-area.focus-mode {
             background: #000; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 100; padding: 0;
+            display: flex; justify-content: center; align-items: center;
         }
 
         .recording-overlay {
@@ -143,7 +144,8 @@
             box-shadow: 0 50px 100px -20px rgba(0,0,0,0.7);
             display: flex; flex-direction: column; overflow: hidden;
             flex-shrink: 0; border-radius: 4px;
-            transition: transform 0.3s; transform-origin: center center;
+            /* Important: Use default easing for resize, but layout changes should be instant */
+            transform-origin: center center;
         }
 
         /* Split Container & Layouts */
@@ -592,8 +594,13 @@ function createMagic() {
                     }
 
                     previewArea.classList.add('focus-mode');
-                    canvasElement.style.transform = 'scale(1)';
-                    await new Promise(r => setTimeout(r, 600));
+                    
+                    // --- SENIOR DEV FIX: SUPER-SAMPLING & CENTERING ---
+                    // Force a large scale to capture high resolution pixels
+                    // Instagram 1080px width / Base 400px width = 2.7 scale
+                    canvasElement.style.transform = 'scale(2.7)'; 
+                    
+                    await new Promise(r => setTimeout(r, 800)); // Allow render to settle
 
                     const stream = await navigator.mediaDevices.getDisplayMedia({
                         video: { 
@@ -615,7 +622,7 @@ function createMagic() {
                     }
 
                     // Recording
-                    const options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 };
+                    const options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 12000000 }; // 12 Mbps
                     if (MediaRecorder.isTypeSupported('video/mp4')) options.mimeType = 'video/mp4';
 
                     mediaRecorder = new MediaRecorder(stream, options);
