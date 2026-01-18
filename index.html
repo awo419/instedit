@@ -897,12 +897,16 @@
                     // Ensure 1:1 scale for recording
                     canvasElement.style.transform = 'scale(1)';
 
-                    // Request Stream
+                    // Give UI time to settle
+                    await new Promise(r => setTimeout(r, 600));
+
+                    // Request Stream with high framerate hint
                     const stream = await navigator.mediaDevices.getDisplayMedia({
                         video: { 
                             mediaSource: 'tab',
                             cursor: 'never',
-                            displaySurface: 'browser'
+                            displaySurface: 'browser',
+                            frameRate: { ideal: 60 } // Request 60fps
                         },
                         audio: false,
                         preferCurrentTab: true 
@@ -930,7 +934,7 @@
                     // Setup Recorder
                     mediaRecorder = new MediaRecorder(stream, { 
                         mimeType: mimeType,
-                        videoBitsPerSecond: 8000000 // 8 Mbps
+                        videoBitsPerSecond: 5000000 // 5 Mbps (Balanced)
                     });
                     
                     mediaRecorder.ondataavailable = function(e) {
@@ -957,8 +961,8 @@
                     // Update UI
                     isRecording = true;
                     recordedChunks = [];
-                    // Start with 200ms timeslice to ensure data even if stopped quickly
-                    mediaRecorder.start(200); 
+                    // Start with 1 second chunks for better stability
+                    mediaRecorder.start(1000); 
                     
                     btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Generation';
                     btn.classList.add('btn-danger');
