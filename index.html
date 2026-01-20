@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InstaCode Generator</title>
+    <title>GHDcodes Generator</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;600;800&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <!-- html2canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- PrismJS -->
@@ -29,10 +29,20 @@
             /* Preview Canvas Variables */
             --canvas-bg: #1e1e1e;
             --canvas-text: #ffffff;
-            --code-bg: #1e1e1e;
+            --window-bg: #1e1e1e;
             --preview-width: 400px; 
             --preview-height: 500px;
             --font-size-code: 12px;
+            
+            /* Dynamic Styles */
+            --title-color: #ffffff;
+            --subtitle-color: #aaaaaa;
+            --title-size: 1.8rem;
+            --subtitle-size: 0.95rem;
+            --text-align: center;
+            --window-opacity: 1;
+            --shadow-intensity: 0.2;
+            --content-padding: 16px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -97,6 +107,15 @@
         .row-group { display: flex; gap: 10px; }
         .col-half { flex: 1; display: flex; flex-direction: column; gap: 5px; }
 
+        input[type="color"] {
+            width: 100%;
+            height: 38px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+        }
+
         input[type="file"]::file-selector-button {
             background: #21262d; border: 1px solid rgba(240,246,252,0.1); color: var(--text-main);
             padding: 6px 12px; border-radius: 6px; margin-right: 10px; cursor: pointer;
@@ -144,51 +163,95 @@
             box-shadow: 0 50px 100px -20px rgba(0,0,0,0.7);
             display: flex; flex-direction: column; overflow: hidden;
             flex-shrink: 0; border-radius: 4px;
-            /* Default easing for resize, but layout changes should be instant */
+            /* Default easing for resize */
             transition: transform 0.2s ease-out;
             transform-origin: center center;
         }
 
-        /* Split Container & Layouts */
+        /* Background Classes */
+        .bg-solid { background-color: var(--canvas-bg); }
+        .bg-gradient-sunset { background: linear-gradient(45deg, #FF512F 0%, #DD2476 100%); }
+        .bg-gradient-ocean { background: linear-gradient(45deg, #2193b0 0%, #6dd5ed 100%); }
+        .bg-gradient-berry { background: linear-gradient(to right, #8e2de2, #4a00e0); }
+        .bg-pattern-grid {
+            background-color: var(--canvas-bg);
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .bg-pattern-dots {
+            background-color: var(--canvas-bg);
+            background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* --- New Header Section --- */
+        .canvas-text-header {
+            padding: 25px 20px 10px 20px;
+            text-align: var(--text-align);
+            z-index: 2;
+            flex-shrink: 0;
+        }
+        
+        .main-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: var(--title-size);
+            font-weight: 800;
+            margin-bottom: 6px;
+            color: var(--title-color);
+            line-height: 1.1;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .sub-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: var(--subtitle-size);
+            font-weight: 500;
+            color: var(--subtitle-color);
+            opacity: 0.9;
+            margin: 0;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* Split Container */
         .split-container {
             flex: 1; display: flex; flex-direction: column;
-            padding: 16px; gap: 12px; height: 100%; overflow: hidden; position: relative;
+            padding: 0 var(--content-padding) 12px var(--content-padding); 
+            gap: 12px; height: 100%; overflow: hidden; position: relative;
         }
 
-        /* Grid Layout Variations */
+        /* Grid Layouts */
         .split-container.layout-even .result-section { flex: 1; }
         .split-container.layout-even .code-section { flex: 1; }
-
         .split-container.layout-result-focus .result-section { flex: 3; }
         .split-container.layout-result-focus .code-section { flex: 1; }
-
         .split-container.layout-code-focus .result-section { flex: 1; }
         .split-container.layout-code-focus .code-section { flex: 3; }
+        .split-container.layout-overlay .result-section { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 0; z-index: 1; }
+        .split-container.layout-overlay .code-section { position: absolute; bottom: 20px; left: 20px; right: 20px; height: 40%; z-index: 2; border: 1px solid rgba(255,255,255,0.2); }
 
-        .split-container.layout-overlay .result-section { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 0; z-index: 1; 
+        /* Window Styles (Shared) */
+        .window-box {
+            background: var(--window-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0, var(--shadow-intensity));
+            min-height: 0;
+            transition: all 0.3s ease;
+            opacity: var(--window-opacity);
         }
-        .split-container.layout-overlay .code-section { 
-            position: absolute; bottom: 20px; left: 20px; right: 20px; height: 40%; z-index: 2; 
-            background: rgba(30, 30, 30, 0.85); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        /* Content Sections */
-        .result-section {
-            background: #000; border-radius: 8px; overflow: hidden; position: relative;
-            border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2); min-height: 0; transition: flex 0.3s ease;
-        }
+        
+        /* Specifics */
+        .result-section { background: #000; align-items: center; justify-content: center; }
         .result-media { width: 100%; height: 100%; object-fit: contain; }
-        .placeholder-text {
-            color: #555; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
-        }
+        .placeholder-text { color: #555; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 
-        .code-section {
-            background: var(--code-bg); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-            display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            min-height: 0; transition: flex 0.3s ease;
-        }
+        .code-section { background: var(--window-bg); }
         .window-bar {
             background: rgba(255,255,255,0.05); padding: 8px 12px; display: flex; align-items: center; gap: 6px;
             border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;
@@ -198,24 +261,14 @@
         .dot.yellow { background: #ffbd2e; }
         .dot.green { background: #27c93f; }
 
-        .code-content {
-            flex: 1; padding: 10px; overflow: hidden; position: relative; background: var(--code-bg);
-        }
-        /* Prism overrides */
+        .code-content { flex: 1; padding: 10px; overflow: hidden; position: relative; }
         pre[class*="language-"] { margin: 0 !important; padding: 0 !important; background: transparent !important; text-shadow: none !important; font-family: 'Fira Code', monospace !important; font-size: var(--font-size-code) !important; }
         code[class*="language-"] { font-family: 'Fira Code', monospace !important; white-space: pre-wrap !important; }
         .code-image-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
 
-        /* Minimal Footer */
-        .canvas-footer {
-            padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;
-            color: var(--canvas-text); font-size: 1.1rem; z-index: 5; opacity: 0.8;
-        }
-        .action-icons { display: flex; gap: 14px; }
-        .action-icon { cursor: pointer; transition: transform 0.2s; }
-        .action-icon:hover { transform: scale(1.1); color: #fff; opacity: 1; }
-        .fa-heart:hover { color: #ed4956; }
-
+        /* FOOTER */
+        .canvas-footer { padding: 16px; display: flex; justify-content: center; align-items: center; z-index: 5; }
+        
         .cta-sticker {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: white; padding: 8px 16px;
@@ -225,11 +278,38 @@
         }
         .cta-sticker:active { cursor: grabbing; }
 
-        /* Mobile */
+        /* --- RESPONSIVE DESIGN --- */
         @media (max-width: 900px) {
-            .app-container { flex-direction: column; overflow-y: auto; height: auto; }
-            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
-            .preview-area { min-height: 80vh; padding: 40px 20px; overflow: hidden; }
+            .app-container { 
+                flex-direction: column-reverse; /* Preview Top, Controls Bottom */
+                overflow-y: auto; 
+                height: 100vh;
+            }
+            
+            .sidebar { 
+                width: 100%; 
+                min-width: 0; 
+                height: auto; 
+                border-right: none; 
+                border-top: 1px solid var(--border-color); 
+                flex-shrink: 0;
+                padding-bottom: 40px; /* Space for mobile scrolling */
+            }
+            
+            .preview-area { 
+                min-height: 55vh; 
+                padding: 20px; 
+                overflow: hidden; 
+                display: flex; 
+                align-items: center;
+                background-size: 15px 15px;
+            }
+            
+            /* On mobile, center the canvas better */
+            #instagram-canvas { 
+                transform-origin: center center; 
+                margin: 0 auto;
+            }
         }
 
         /* Alert/Modal */
@@ -262,7 +342,7 @@
         <p>Ensure you select "Share Tab Audio" if using background music.</p>
         <ul class="steps">
             <li><i class="fa-solid fa-1"></i> In the popup, select <strong>"Chrome Tab"</strong>.</li>
-            <li><i class="fa-solid fa-2"></i> <strong>CLICK</strong> on <strong>"InstaCode Generator"</strong>.</li>
+            <li><i class="fa-solid fa-2"></i> <strong>CLICK</strong> on <strong>"GHDcodes Generator"</strong>.</li>
             <li><i class="fa-solid fa-3"></i> <strong>CHECK</strong> the "Share Tab Audio" box (bottom left).</li>
             <li><i class="fa-solid fa-4"></i> Click <strong>"Share"</strong>.</li>
         </ul>
@@ -273,9 +353,9 @@
     <div class="app-container">
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <h2><i class="fa-solid fa-layer-group"></i> InstaCode Pro</h2>
+            <h2><i class="fa-solid fa-laptop-code"></i> GHDcodes</h2>
 
-            <div class="section-title">Layout & Style</div>
+            <div class="section-title">Layout & Appearance</div>
             <div class="control-group">
                 <label>Grid Layout</label>
                 <select id="layout-select" onchange="changeLayout()">
@@ -288,22 +368,64 @@
             
             <div class="row-group">
                 <div class="col-half">
-                    <label>Theme</label>
-                    <select id="theme-select" onchange="applyTheme()">
-                        <option value="dark">Dark (Default)</option>
-                        <option value="dracula">Dracula</option>
-                        <option value="github-light">GitHub Light</option>
-                        <option value="monokai">Monokai</option>
+                    <label>Bg Style</label>
+                    <select id="bg-style" onchange="changeBackground()">
+                        <option value="bg-solid">Solid Dark</option>
+                        <option value="bg-gradient-sunset">Sunset</option>
+                        <option value="bg-gradient-ocean">Ocean</option>
+                        <option value="bg-gradient-berry">Berry</option>
+                        <option value="bg-pattern-grid">Grid</option>
+                        <option value="bg-pattern-dots">Dots</option>
                     </select>
                 </div>
                 <div class="col-half">
-                    <label>Size</label>
+                    <label>Aspect Ratio</label>
                     <select id="ratio-select" onchange="changeAspectRatio()">
                         <option value="portrait">4:5 (Post)</option>
                         <option value="square">1:1 (Square)</option>
                         <option value="story">9:16 (Story)</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="section-title">Typography & Styles</div>
+            <div class="control-group">
+                <label>Main Title</label>
+                <input type="text" id="input-main-title" value="Glassmorphism Effect" oninput="updateText()">
+                <div class="row-group" style="margin-top: 5px;">
+                    <input type="color" id="title-color" value="#ffffff" oninput="updateStyles()">
+                    <input type="range" id="title-size" min="1.0" max="3.0" step="0.1" value="1.8" oninput="updateStyles()">
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Subtitle</label>
+                <input type="text" id="input-sub-title" value="CSS Backdrop Filter Tutorial" oninput="updateText()">
+                <div class="row-group" style="margin-top: 5px;">
+                    <input type="color" id="subtitle-color" value="#aaaaaa" oninput="updateStyles()">
+                    <input type="range" id="subtitle-size" min="0.6" max="1.5" step="0.05" value="0.95" oninput="updateStyles()">
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Text Align</label>
+                <select id="text-align" onchange="updateStyles()">
+                    <option value="center">Center</option>
+                    <option value="left">Left</option>
+                    <option value="right">Right</option>
+                </select>
+            </div>
+
+            <div class="section-title">Window Styling</div>
+            <div class="control-group">
+                <label>Window Opacity (Glass Effect)</label>
+                <input type="range" id="window-opacity" min="0.5" max="1" step="0.05" value="1" oninput="updateStyles()">
+            </div>
+            <div class="control-group">
+                <label>Shadow Intensity</label>
+                <input type="range" id="shadow-intensity" min="0" max="0.8" step="0.1" value="0.2" oninput="updateStyles()">
+            </div>
+            <div class="control-group">
+                <label>Card Padding</label>
+                <input type="range" id="content-padding" min="0" max="40" step="4" value="16" oninput="updateStyles()">
             </div>
 
             <div class="section-title">Content Assets</div>
@@ -323,9 +445,10 @@
                 </div>
                 <div id="code-text-group">
                     <textarea id="input-code" rows="6" oninput="updateCode()">
-function createMagic() {
-  const visual = new Visuals();
-  visual.render('✨');
+.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }</textarea>
                 </div>
                 <div id="code-upload-group" style="display:none;">
@@ -342,7 +465,7 @@ function createMagic() {
                 <label>Sticker Text</label>
                 <input type="text" id="input-cta" value="Save for later 🔖" oninput="updateText()">
             </div>
-
+            
             <div class="action-buttons">
                 <button class="btn btn-secondary" onclick="downloadImage()">
                     <i class="fa-solid fa-image"></i> Download PNG
@@ -368,12 +491,16 @@ function createMagic() {
                 <i class="fa-solid fa-circle"></i> RECORDING...
             </div>
             
-            <div id="instagram-canvas">
-                <!-- No Header -->
+            <div id="instagram-canvas" class="bg-solid">
+                <!-- Header Text -->
+                <div class="canvas-text-header">
+                    <h1 class="main-title" id="display-main-title">Glassmorphism Effect</h1>
+                    <h2 class="sub-title" id="display-sub-title">CSS Backdrop Filter Tutorial</h2>
+                </div>
 
                 <!-- Content -->
                 <div class="split-container layout-even" id="split-layout">
-                    <div class="result-section">
+                    <div class="result-section window-box">
                         <img src="" class="result-media" id="result-preview" style="display:none;">
                         <video loop autoplay muted playsinline class="result-media" id="result-video-preview" style="display:none;"></video>
                         <div id="result-placeholder" class="placeholder-text">
@@ -382,12 +509,12 @@ function createMagic() {
                         </div>
                     </div>
 
-                    <div class="code-section">
+                    <div class="code-section window-box">
                         <div class="window-bar">
                             <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
                         </div>
                         <div class="code-content">
-                            <pre class="language-javascript" id="code-text-display"><code id="prism-code-target"></code></pre>
+                            <pre class="language-css" id="code-text-display"><code id="prism-code-target"></code></pre>
                             <img src="" class="code-image-preview" id="code-img-preview">
                         </div>
                     </div>
@@ -395,14 +522,9 @@ function createMagic() {
                     <div class="cta-sticker" id="cta-sticker">Save for later 🔖</div>
                 </div>
 
-                <!-- Minimal Footer -->
+                <!-- Branded Footer -->
                 <div class="canvas-footer">
-                    <div class="action-icons">
-                        <i class="fa-regular fa-heart action-icon"></i>
-                        <i class="fa-regular fa-comment action-icon"></i>
-                        <i class="fa-regular fa-paper-plane action-icon"></i>
-                    </div>
-                    <div class="save-icon"><i class="fa-regular fa-bookmark action-icon"></i></div>
+                    <!-- Footer content removed -->
                 </div>
             </div>
         </main>
@@ -415,6 +537,7 @@ function createMagic() {
         document.addEventListener('DOMContentLoaded', () => {
             updateText();
             updateCode();
+            updateStyles(); // Init styles
             makeDraggable(document.getElementById('cta-sticker'));
             fitCanvas();
             window.addEventListener('resize', fitCanvas);
@@ -431,25 +554,60 @@ function createMagic() {
         function fitCanvas() {
             const container = document.getElementById('main-preview-area');
             const canvas = document.getElementById('instagram-canvas');
-            // Don't resize if we are in recording mode (the recorder handles that)
             if (document.body.classList.contains('recording-active')) return;
 
-            if (window.innerWidth <= 900) return;
+            // Get available dimensions
+            // On mobile, use container dimensions minus padding
+            let availableWidth = container.clientWidth;
+            let availableHeight = container.clientHeight;
             
-            const availableWidth = container.clientWidth - 80;
-            const availableHeight = container.clientHeight - 80;
+            // Adjust padding based on screen size
+            const padding = window.innerWidth <= 600 ? 30 : 80;
+            
+            availableWidth -= padding;
+            availableHeight -= padding;
+
             const currentRatio = document.getElementById('ratio-select').value;
-            let baseW = 400, baseH = 500;
+            let baseW = 400; 
+            let baseH = 500;
             
             if (currentRatio === 'square') baseH = 400;
             if (currentRatio === 'story') baseH = 711;
 
-            const scale = Math.min(availableWidth / baseW, availableHeight / baseH);
-            canvas.style.transform = scale < 1 ? `scale(${scale})` : 'scale(1)';
+            let scale;
+            
+            // On mobile/tablet (width <= 900px), prioritize width fit
+            if (window.innerWidth <= 900) {
+                // Ensure the canvas scales down if the available width is small
+                scale = availableWidth / baseW;
+            } else {
+                // Desktop: Fit within the flex box (width and height)
+                scale = Math.min(availableWidth / baseW, availableHeight / baseH);
+            }
+
+            // Cap scale at 1 for display preview to ensure sharpness (prevent blurry upscaling)
+            if (scale > 1) scale = 1;
+            
+            canvas.style.transform = `scale(${scale})`;
         }
 
         function updateText() {
+            document.getElementById('display-main-title').innerText = document.getElementById('input-main-title').value;
+            document.getElementById('display-sub-title').innerText = document.getElementById('input-sub-title').value;
             document.getElementById('cta-sticker').innerText = document.getElementById('input-cta').value;
+        }
+
+        function updateStyles() {
+            const root = document.documentElement;
+            root.style.setProperty('--title-color', document.getElementById('title-color').value);
+            root.style.setProperty('--subtitle-color', document.getElementById('subtitle-color').value);
+            root.style.setProperty('--title-size', document.getElementById('title-size').value + 'rem');
+            root.style.setProperty('--subtitle-size', document.getElementById('subtitle-size').value + 'rem');
+            root.style.setProperty('--text-align', document.getElementById('text-align').value);
+            
+            root.style.setProperty('--window-opacity', document.getElementById('window-opacity').value);
+            root.style.setProperty('--shadow-intensity', document.getElementById('shadow-intensity').value);
+            root.style.setProperty('--content-padding', document.getElementById('content-padding').value + 'px');
         }
 
         function updateFontSize() {
@@ -461,6 +619,14 @@ function createMagic() {
             const layout = document.getElementById('layout-select').value;
             const container = document.getElementById('split-layout');
             container.className = `split-container ${layout}`;
+        }
+
+        function changeBackground() {
+            const bgClass = document.getElementById('bg-style').value;
+            const canvas = document.getElementById('instagram-canvas');
+            // Remove previous bg classes
+            canvas.classList.remove('bg-solid', 'bg-gradient-sunset', 'bg-gradient-ocean', 'bg-gradient-berry', 'bg-pattern-grid', 'bg-pattern-dots');
+            canvas.classList.add(bgClass);
         }
 
         function toggleCodeMode() {
@@ -494,6 +660,7 @@ function createMagic() {
         function applyTheme() {
             const theme = document.getElementById('theme-select').value;
             const root = document.documentElement;
+            // Preset themes still mostly control basic colors, background overrides above
             const themes = {
                 'dark': { bg: '#1e1e1e', txt: '#fff' },
                 'dracula': { bg: '#282a36', txt: '#f8f8f2' },
@@ -501,9 +668,9 @@ function createMagic() {
                 'monokai': { bg: '#272822', txt: '#f8f8f2' }
             };
             const t = themes[theme] || themes['dark'];
-            root.style.setProperty('--canvas-bg', t.bg);
+            root.style.setProperty('--window-bg', t.bg); // Window BG
             root.style.setProperty('--canvas-text', t.txt);
-            root.style.setProperty('--code-bg', t.bg);
+            // We do NOT set --canvas-bg here because that is now handled by changeBackground()
         }
 
         function changeAspectRatio() {
@@ -559,7 +726,7 @@ function createMagic() {
             area.style.transform = 'scale(1)';
             html2canvas(area, { scale: 3, useCORS: true, backgroundColor: null }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = `InstaCode-${Date.now()}.png`;
+                link.download = `GHDcodes-${Date.now()}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
                 area.style.transform = originalTransform;
@@ -607,7 +774,6 @@ function createMagic() {
                     const screenH = window.innerHeight;
                     
                     // 2. Base dimensions of our card (400x500 default)
-                    // We need to read current css var or computed style to be sure
                     const baseW = 400; 
                     const baseH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--preview-height')) || 500;
 
@@ -656,7 +822,7 @@ function createMagic() {
                         const a = document.createElement('a');
                         a.style.display = 'none';
                         a.href = url;
-                        a.download = `InstaCode-Video-${Date.now()}.${options.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
+                        a.download = `GHDcodes-Video-${Date.now()}.${options.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
                         document.body.appendChild(a);
                         a.click();
                         resetRecordingUI();
