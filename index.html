@@ -485,7 +485,7 @@
                         <option value="15000">15 Seconds</option>
                     </select>
                 </div>
-                <button class="btn btn-primary" id="btn-record" onclick="showExportInstructions()">
+                <button class="btn btn-primary" id="btn-record" onclick="toggleRecording()">
                     <i class="fa-solid fa-video"></i> Export Video (MP4)
                 </button>
             </div>
@@ -547,7 +547,6 @@
             makeDraggable(document.getElementById('cta-sticker'));
             fitCanvas();
             window.addEventListener('resize', fitCanvas);
-            checkMobileSupport(); // Check on load
         });
 
         function showAlert(msg) {
@@ -557,19 +556,9 @@
             setTimeout(() => { alertBox.style.display = 'none'; }, 6000);
         }
 
-        // --- MOBILE CHECK ---
-        function checkMobileSupport() {
-            // Check if getDisplayMedia is supported
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                const videoBtn = document.getElementById('btn-record');
-                const videoSelect = document.getElementById('video-duration');
-                
-                // Disable video features
-                videoBtn.disabled = true;
-                videoBtn.innerHTML = '<i class="fa-solid fa-ban"></i> Video (Desktop Only)';
-                videoBtn.title = "Screen recording is not supported on mobile browsers.";
-                videoSelect.disabled = true;
-            }
+        // --- HELPER FOR MOBILE ---
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 900;
         }
 
         // --- SMART FIT FOR DISPLAY ---
@@ -578,38 +567,25 @@
             const canvas = document.getElementById('instagram-canvas');
             if (document.body.classList.contains('recording-active')) return;
 
-            // Get available dimensions
-            // On mobile, use container dimensions minus padding
             let availableWidth = container.clientWidth;
             let availableHeight = container.clientHeight;
-            
-            // Adjust padding based on screen size
             const padding = window.innerWidth <= 600 ? 30 : 80;
-            
             availableWidth -= padding;
             availableHeight -= padding;
 
             const currentRatio = document.getElementById('ratio-select').value;
             let baseW = 400; 
             let baseH = 500;
-            
             if (currentRatio === 'square') baseH = 400;
             if (currentRatio === 'story') baseH = 711;
 
             let scale;
-            
-            // On mobile/tablet (width <= 900px), prioritize width fit
             if (window.innerWidth <= 900) {
-                // Ensure the canvas scales down if the available width is small
                 scale = availableWidth / baseW;
             } else {
-                // Desktop: Fit within the flex box (width and height)
                 scale = Math.min(availableWidth / baseW, availableHeight / baseH);
             }
-
-            // Cap scale at 1 for display preview to ensure sharpness (prevent blurry upscaling)
             if (scale > 1) scale = 1;
-            
             canvas.style.transform = `scale(${scale})`;
         }
 
@@ -626,7 +602,6 @@
             root.style.setProperty('--title-size', document.getElementById('title-size').value + 'rem');
             root.style.setProperty('--subtitle-size', document.getElementById('subtitle-size').value + 'rem');
             root.style.setProperty('--text-align', document.getElementById('text-align').value);
-            
             root.style.setProperty('--window-opacity', document.getElementById('window-opacity').value);
             root.style.setProperty('--shadow-intensity', document.getElementById('shadow-intensity').value);
             root.style.setProperty('--content-padding', document.getElementById('content-padding').value + 'px');
@@ -646,7 +621,6 @@
         function changeBackground() {
             const bgClass = document.getElementById('bg-style').value;
             const canvas = document.getElementById('instagram-canvas');
-            // Remove previous bg classes
             canvas.classList.remove('bg-solid', 'bg-gradient-sunset', 'bg-gradient-ocean', 'bg-gradient-berry', 'bg-pattern-grid', 'bg-pattern-dots');
             canvas.classList.add(bgClass);
         }
@@ -682,7 +656,6 @@
         function applyTheme() {
             const theme = document.getElementById('theme-select').value;
             const root = document.documentElement;
-            // Preset themes still mostly control basic colors, background overrides above
             const themes = {
                 'dark': { bg: '#1e1e1e', txt: '#fff' },
                 'dracula': { bg: '#282a36', txt: '#f8f8f2' },
@@ -690,9 +663,8 @@
                 'monokai': { bg: '#272822', txt: '#f8f8f2' }
             };
             const t = themes[theme] || themes['dark'];
-            root.style.setProperty('--window-bg', t.bg); // Window BG
+            root.style.setProperty('--window-bg', t.bg);
             root.style.setProperty('--canvas-text', t.txt);
-            // We do NOT set --canvas-bg here because that is now handled by changeBackground()
         }
 
         function changeAspectRatio() {
@@ -755,19 +727,20 @@
             });
         }
 
-        // --- Video Recorder ---
+        // --- RECORDING LOGIC (Universal) ---
         let mediaRecorder;
         let recordedChunks = [];
         let isRecording = false;
         let autoStopTimer = null;
 
         function showExportInstructions() {
-            // Re-check for mobile in case
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                showAlert("Your browser does not support screen recording.");
-                return;
+            if (isMobile() || !navigator.mediaDevices?.getDisplayMedia) {
+                // If mobile or not supported, skip instructions and go straight to internal recording
+                toggleRecording(); 
+            } else {
+                // Desktop: Show popup to guide user
+                document.getElementById('video-instructions').style.display = 'flex';
             }
-            document.getElementById('video-instructions').style.display = 'flex';
         }
         function closeInstructions() {
             document.getElementById('video-instructions').style.display = 'none';
@@ -778,6 +751,106 @@
         }
 
         async function toggleRecording() {
+            if (isMobile() || !navigator.mediaDevices?.getDisplayMedia) {
+                toggleMobileRecording();
+            } else {
+                toggleDesktopRecording();
+            }
+        }
+
+        // --- MOBILE/FALLBACK RECORDER (Canvas Compositor) ---
+        async function toggleMobileRecording() {
+            if (isRecording) { stopRecordingLogic(); return; }
+
+            const btn = document.getElementById('btn-record');
+            const indicator = document.getElementById('rec-indicator');
+            const canvasElement = document.getElementById('instagram-canvas');
+            const videoElem = document.getElementById('result-video-preview');
+            const audioPlayer = document.getElementById('audio-player');
+            const duration = document.getElementById('video-duration').value;
+
+            isRecording = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Generating...';
+            btn.classList.add('btn-danger');
+
+            try {
+                // 1. Capture Static Background (Text, Code, etc)
+                const scale = 2; // Good balance for mobile
+                const staticCanvas = await html2canvas(canvasElement, { scale, useCORS: true, backgroundColor: null, logging: false });
+                
+                // 2. Setup Compositor
+                const compositor = document.createElement('canvas');
+                compositor.width = staticCanvas.width;
+                compositor.height = staticCanvas.height;
+                const ctx = compositor.getContext('2d');
+
+                // 3. Calc Video Rect if present
+                let vidRect = null;
+                if (videoElem.style.display !== 'none') {
+                    const cRect = canvasElement.getBoundingClientRect();
+                    const vRect = videoElem.getBoundingClientRect();
+                    vidRect = {
+                        x: (vRect.left - cRect.left) * scale,
+                        y: (vRect.top - cRect.top) * scale,
+                        w: vRect.width * scale,
+                        h: vRect.height * scale
+                    };
+                }
+
+                // 4. Draw Loop
+                const draw = () => {
+                    if (!isRecording) return;
+                    ctx.drawImage(staticCanvas, 0, 0);
+                    if (vidRect && !videoElem.paused && !videoElem.ended) {
+                        ctx.drawImage(videoElem, vidRect.x, vidRect.y, vidRect.w, vidRect.h);
+                    }
+                    requestAnimationFrame(draw);
+                };
+                draw();
+
+                // 5. Record
+                const stream = compositor.captureStream(30);
+                let mimeType = 'video/webm';
+                if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
+                
+                mediaRecorder = new MediaRecorder(stream, { mimeType });
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = e => { if(e.data.size>0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `GHDcodes-Mobile-${Date.now()}.${mimeType === 'video/mp4' ? 'mp4' : 'webm'}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    resetRecordingUI();
+                };
+
+                mediaRecorder.start();
+                
+                if(audioPlayer.src) audioPlayer.play();
+                if(videoElem.src && videoElem.paused) videoElem.play();
+
+                btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop';
+                indicator.style.display = 'block';
+
+                if (duration !== 'manual') {
+                    autoStopTimer = setTimeout(() => stopRecordingLogic(), parseInt(duration));
+                }
+
+            } catch (err) {
+                console.error(err);
+                showAlert("Mobile Recording Error: " + err.message);
+                resetRecordingUI();
+            }
+        }
+
+        // --- DESKTOP RECORDER (High Quality Tab Share) ---
+        async function toggleDesktopRecording() {
+            if (isRecording) { stopRecordingLogic(); return; }
+
             const btn = document.getElementById('btn-record');
             const indicator = document.getElementById('rec-indicator');
             const previewArea = document.getElementById('main-preview-area');
@@ -785,112 +858,76 @@
             const duration = document.getElementById('video-duration').value;
             const audioPlayer = document.getElementById('audio-player');
 
-            if (!isRecording) {
-                try {
-                    // Check Feature Policy if possible
-                    if (document.featurePolicy && !document.featurePolicy.allowsFeature('display-capture')) {
-                         throw new Error("permissions policy disallows display-capture");
-                    }
-
-                    document.body.classList.add('recording-active');
-                    previewArea.classList.add('focus-mode');
-                    
-                    // --- SMART MAX-FIT ALGORITHM ---
-                    // 1. Get user's available screen space
-                    const screenW = window.innerWidth;
-                    const screenH = window.innerHeight;
-                    
-                    // 2. Base dimensions of our card (400x500 default)
-                    const baseW = 400; 
-                    const baseH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--preview-height')) || 500;
-
-                    // 3. Calculate max safe scale (leaving 50px padding)
-                    const safeW = screenW - 100;
-                    const safeH = screenH - 100;
-                    const scaleX = safeW / baseW;
-                    const scaleY = safeH / baseH;
-                    
-                    // 4. Use the smaller scale to ensure it fits perfectly without cropping
-                    const finalScale = Math.min(scaleX, scaleY);
-                    
-                    // Apply scale
-                    canvasElement.style.transform = `scale(${finalScale})`; 
-                    
-                    await new Promise(r => setTimeout(r, 800)); // Allow render to settle
-
-                    const stream = await navigator.mediaDevices.getDisplayMedia({
-                        video: { 
-                            displaySurface: 'browser',
-                            frameRate: { ideal: 60 },
-                            height: { ideal: 1080 } 
-                        },
-                        audio: true, // Request audio!
-                        preferCurrentTab: true
-                    });
-
-                    // Cropping
-                    const tracks = stream.getVideoTracks();
-                    if (tracks.length > 0 && typeof CropTarget !== 'undefined') {
-                        try {
-                            const cropTarget = await CropTarget.fromElement(canvasElement);
-                            await tracks[0].cropTo(cropTarget);
-                        } catch (e) { console.warn("Crop failed", e); }
-                    }
-
-                    // Recording
-                    const options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 12000000 }; // 12 Mbps
-                    if (MediaRecorder.isTypeSupported('video/mp4')) options.mimeType = 'video/mp4';
-
-                    mediaRecorder = new MediaRecorder(stream, options);
-                    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
-                    mediaRecorder.onstop = () => {
-                        const blob = new Blob(recordedChunks, { type: options.mimeType });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.style.display = 'none';
-                        a.href = url;
-                        a.download = `GHDcodes-Video-${Date.now()}.${options.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
-                        document.body.appendChild(a);
-                        a.click();
-                        resetRecordingUI();
-                    };
-
-                    isRecording = true;
-                    recordedChunks = [];
-                    mediaRecorder.start();
-                    
-                    // Start Background Music
-                    if(audioPlayer.src) {
-                        audioPlayer.play().catch(e => console.log("Audio play blocked", e));
-                    }
-
-                    btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop';
-                    btn.classList.add('btn-danger');
-                    indicator.style.display = 'block';
-
-                    if (duration !== 'manual') {
-                        const ms = parseInt(duration);
-                        let s = ms / 1000;
-                        indicator.innerText = `GENERATING (${s}s)...`;
-                        const cd = setInterval(() => { s--; indicator.innerText = `GENERATING (${s}s)...`; if(s<=0) clearInterval(cd); }, 1000);
-                        autoStopTimer = setTimeout(() => stopRecordingLogic(), ms);
-                    }
-
-                    stream.getVideoTracks()[0].onended = () => { if(isRecording) stopRecordingLogic(); };
-
-                } catch (err) {
-                    console.error(err);
-                    if (err.name === 'NotAllowedError' && (err.message.includes('policy') || err.message.includes('disallowed'))) {
-                        showAlert("RESTRICTED ENVIRONMENT: You cannot record inside this preview. Please DOWNLOAD the HTML file and run it on your computer.");
-                    } else if (err.name === 'NotAllowedError') {
-                        showAlert("Cancelled. You must click 'Share' in the popup.");
-                    } else {
-                        showAlert("Error: " + err.message);
-                    }
-                    resetRecordingUI();
+            try {
+                // Feature Policy Check
+                if (document.featurePolicy && !document.featurePolicy.allowsFeature('display-capture')) {
+                     throw new Error("permissions policy disallows display-capture");
                 }
-            } else {
-                stopRecordingLogic();
+
+                document.body.classList.add('recording-active');
+                previewArea.classList.add('focus-mode');
+                
+                // Smart Max-Fit
+                const baseW = 400; 
+                const baseH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--preview-height')) || 500;
+                const safeW = window.innerWidth - 100;
+                const safeH = window.innerHeight - 100;
+                const scale = Math.min(safeW/baseW, safeH/baseH);
+                canvasElement.style.transform = `scale(${scale})`; 
+                
+                await new Promise(r => setTimeout(r, 800));
+
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { displaySurface: 'browser', frameRate: { ideal: 60 }, height: { ideal: 1080 } },
+                    audio: true, preferCurrentTab: true
+                });
+
+                // Crop
+                const tracks = stream.getVideoTracks();
+                if (tracks.length > 0 && typeof CropTarget !== 'undefined') {
+                    try {
+                        const cropTarget = await CropTarget.fromElement(canvasElement);
+                        await tracks[0].cropTo(cropTarget);
+                    } catch (e) { console.warn("Crop failed", e); }
+                }
+
+                const options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 12000000 };
+                if (MediaRecorder.isTypeSupported('video/mp4')) options.mimeType = 'video/mp4';
+
+                mediaRecorder = new MediaRecorder(stream, options);
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: options.mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `GHDcodes-Video-${Date.now()}.${options.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    resetRecordingUI();
+                };
+
+                isRecording = true;
+                recordedChunks = [];
+                mediaRecorder.start();
+                if(audioPlayer.src) audioPlayer.play();
+
+                btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop';
+                btn.classList.add('btn-danger');
+                indicator.style.display = 'block';
+
+                if (duration !== 'manual') {
+                    autoStopTimer = setTimeout(() => stopRecordingLogic(), parseInt(duration));
+                }
+
+                stream.getVideoTracks()[0].onended = () => { if(isRecording) stopRecordingLogic(); };
+
+            } catch (err) {
+                console.error(err);
+                if (err.name === 'NotAllowedError') showAlert("Cancelled.");
+                else showAlert("Error: " + err.message);
+                resetRecordingUI();
             }
         }
 
@@ -899,10 +936,7 @@
             if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
             if (mediaRecorder && mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t => t.stop());
             if (autoStopTimer) clearTimeout(autoStopTimer);
-            
-            // Stop Music
-            audioPlayer.pause();
-            audioPlayer.currentTime = 0;
+            if(audioPlayer) { audioPlayer.pause(); audioPlayer.currentTime = 0; }
         }
 
         function resetRecordingUI() {
@@ -910,7 +944,7 @@
             document.body.classList.remove('recording-active');
             document.getElementById('btn-record').innerHTML = '<i class="fa-solid fa-video"></i> Export Video (MP4)';
             document.getElementById('btn-record').classList.remove('btn-danger');
-            document.getElementById('btn-record').disabled = false; // Re-enable just in case
+            document.getElementById('btn-record').disabled = false;
             document.getElementById('rec-indicator').style.display = 'none';
             document.getElementById('main-preview-area').classList.remove('focus-mode');
             fitCanvas();
