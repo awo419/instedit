@@ -131,6 +131,13 @@
         .btn-danger { background-color: #da3633; color: white; }
         .btn-secondary { background-color: #21262d; color: var(--text-main); }
         .btn-secondary:hover { background-color: #30363d; }
+        
+        .btn:disabled {
+            background-color: #30363d;
+            color: #8b949e;
+            cursor: not-allowed;
+            border-color: transparent;
+        }
 
         /* --- Preview Area --- */
         .preview-area {
@@ -163,7 +170,6 @@
             box-shadow: 0 50px 100px -20px rgba(0,0,0,0.7);
             display: flex; flex-direction: column; overflow: hidden;
             flex-shrink: 0; border-radius: 4px;
-            /* Default easing for resize */
             transition: transform 0.2s ease-out;
             transform-origin: center center;
         }
@@ -281,7 +287,7 @@
         /* --- RESPONSIVE DESIGN --- */
         @media (max-width: 900px) {
             .app-container { 
-                flex-direction: column-reverse; /* Preview Top, Controls Bottom */
+                flex-direction: column-reverse; /* Controls Bottom, Preview Top */
                 overflow-y: auto; 
                 height: 100vh;
             }
@@ -293,7 +299,7 @@
                 border-right: none; 
                 border-top: 1px solid var(--border-color); 
                 flex-shrink: 0;
-                padding-bottom: 40px; /* Space for mobile scrolling */
+                padding-bottom: 40px;
             }
             
             .preview-area { 
@@ -305,7 +311,7 @@
                 background-size: 15px 15px;
             }
             
-            /* On mobile, center the canvas better */
+            /* On mobile, center the canvas perfectly */
             #instagram-canvas { 
                 transform-origin: center center; 
                 margin: 0 auto;
@@ -541,6 +547,7 @@
             makeDraggable(document.getElementById('cta-sticker'));
             fitCanvas();
             window.addEventListener('resize', fitCanvas);
+            checkMobileSupport(); // Check on load
         });
 
         function showAlert(msg) {
@@ -548,6 +555,21 @@
             alertBox.innerText = msg;
             alertBox.style.display = 'block';
             setTimeout(() => { alertBox.style.display = 'none'; }, 6000);
+        }
+
+        // --- MOBILE CHECK ---
+        function checkMobileSupport() {
+            // Check if getDisplayMedia is supported
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                const videoBtn = document.getElementById('btn-record');
+                const videoSelect = document.getElementById('video-duration');
+                
+                // Disable video features
+                videoBtn.disabled = true;
+                videoBtn.innerHTML = '<i class="fa-solid fa-ban"></i> Video (Desktop Only)';
+                videoBtn.title = "Screen recording is not supported on mobile browsers.";
+                videoSelect.disabled = true;
+            }
         }
 
         // --- SMART FIT FOR DISPLAY ---
@@ -740,6 +762,11 @@
         let autoStopTimer = null;
 
         function showExportInstructions() {
+            // Re-check for mobile in case
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                showAlert("Your browser does not support screen recording.");
+                return;
+            }
             document.getElementById('video-instructions').style.display = 'flex';
         }
         function closeInstructions() {
@@ -883,6 +910,7 @@
             document.body.classList.remove('recording-active');
             document.getElementById('btn-record').innerHTML = '<i class="fa-solid fa-video"></i> Export Video (MP4)';
             document.getElementById('btn-record').classList.remove('btn-danger');
+            document.getElementById('btn-record').disabled = false; // Re-enable just in case
             document.getElementById('rec-indicator').style.display = 'none';
             document.getElementById('main-preview-area').classList.remove('focus-mode');
             fitCanvas();
