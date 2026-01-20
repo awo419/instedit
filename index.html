@@ -773,34 +773,57 @@
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Generating...';
             btn.classList.add('btn-danger');
 
+            // Save current display transform
+            const originalTransform = canvasElement.style.transform;
+
             try {
-                // 1. Capture Static Background (Text, Code, etc)
-                const scale = 2; // Good balance for mobile
-                const staticCanvas = await html2canvas(canvasElement, { scale, useCORS: true, backgroundColor: null, logging: false });
+                // 1. STABILIZATION: Temporarily reset transform to 1.0 to get accurate non-scaled coordinates
+                // This prevents the "discomfiture" / misalignment of the video overlay
+                canvasElement.style.transform = 'scale(1)';
+                await new Promise(r => setTimeout(r, 150)); // Wait for layout repaint
+
+                // 2. High Quality Background Capture
+                const exportScale = 3; // 3x Scale for crispy mobile video
+                const staticCanvas = await html2canvas(canvasElement, { 
+                    scale: exportScale, 
+                    useCORS: true, 
+                    backgroundColor: null, 
+                    logging: false,
+                    scrollY: -window.scrollY // Fix for mobile scrolling offsets
+                });
                 
-                // 2. Setup Compositor
+                // 3. Setup Compositor
                 const compositor = document.createElement('canvas');
                 compositor.width = staticCanvas.width;
                 compositor.height = staticCanvas.height;
                 const ctx = compositor.getContext('2d');
 
-                // 3. Calc Video Rect if present
+                // 4. Calculate Video Position (Relative to UNSCALED canvas)
                 let vidRect = null;
-                if (videoElem.style.display !== 'none') {
+                if (videoElem && videoElem.style.display !== 'none') {
                     const cRect = canvasElement.getBoundingClientRect();
                     const vRect = videoElem.getBoundingClientRect();
+                    
                     vidRect = {
-                        x: (vRect.left - cRect.left) * scale,
-                        y: (vRect.top - cRect.top) * scale,
-                        w: vRect.width * scale,
-                        h: vRect.height * scale
+                        // Calculate position relative to canvas, then multiply by export scale
+                        x: (vRect.left - cRect.left) * exportScale,
+                        y: (vRect.top - cRect.top) * exportScale,
+                        w: vRect.width * exportScale,
+                        h: vRect.height * exportScale
                     };
                 }
 
-                // 4. Draw Loop
+                // 5. Restore User View (The responsive scaling)
+                canvasElement.style.transform = originalTransform;
+
+                // 6. Draw Loop
                 const draw = () => {
                     if (!isRecording) return;
+                    
+                    // Draw static background (UI)
                     ctx.drawImage(staticCanvas, 0, 0);
+                    
+                    // Draw Video Frame (if playing)
                     if (vidRect && !videoElem.paused && !videoElem.ended) {
                         ctx.drawImage(videoElem, vidRect.x, vidRect.y, vidRect.w, vidRect.h);
                     }
@@ -808,12 +831,33 @@
                 };
                 draw();
 
-                // 5. Record
-                const stream = compositor.captureStream(30);
+                // 7. Start Recording
+                const stream = compositor.captureStream(30); // 30 FPS is stable for mobile
+                
+                // Attempt Audio Mixing (Best Effort for Mobile)
+                if (audioPlayer.src) {
+                    try {
+                        // Note: Mobile browsers restrict AudioContext often, so this is wrapped safely
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        if (AudioContext) {
+                            const ac = new AudioContext();
+                            const dest = ac.createMediaStreamDestination();
+                            // Create source only if not already connected (simplified logic)
+                            const source = ac.createMediaElementSource(audioPlayer); 
+                            source.connect(dest);
+                            const track = dest.stream.getAudioTracks()[0];
+                            if(track) stream.addTrack(track);
+                        }
+                    } catch(e) {
+                        // Silently fail audio mix if CORS/Restriction blocks it (video will still generate)
+                        console.log("Audio mix skipped:", e); 
+                    }
+                }
+
                 let mimeType = 'video/webm';
                 if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
                 
-                mediaRecorder = new MediaRecorder(stream, { mimeType });
+                mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5000000 });
                 recordedChunks = [];
                 mediaRecorder.ondataavailable = e => { if(e.data.size>0) recordedChunks.push(e.data); };
                 mediaRecorder.onstop = () => {
@@ -822,15 +866,20 @@
                     const a = document.createElement('a');
                     a.style.display = 'none';
                     a.href = url;
-                    a.download = `GHDcodes-Mobile-${Date.now()}.${mimeType === 'video/mp4' ? 'mp4' : 'webm'}`;
+                    const ext = mimeType === 'video/mp4' ? 'mp4' : 'webm';
+                    a.download = `GHDcodes-Mobile-${Date.now()}.${ext}`;
                     document.body.appendChild(a);
                     a.click();
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    }, 100);
                     resetRecordingUI();
                 };
 
                 mediaRecorder.start();
                 
-                if(audioPlayer.src) audioPlayer.play();
+                if(audioPlayer.src) audioPlayer.play().catch(e => console.log("Autoplay prevented", e));
                 if(videoElem.src && videoElem.paused) videoElem.play();
 
                 btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop';
@@ -842,7 +891,8 @@
 
             } catch (err) {
                 console.error(err);
-                showAlert("Mobile Recording Error: " + err.message);
+                showAlert("Mobile Error: " + err.message);
+                canvasElement.style.transform = originalTransform; // Always restore view
                 resetRecordingUI();
             }
         }
